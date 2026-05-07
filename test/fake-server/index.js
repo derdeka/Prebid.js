@@ -2,7 +2,7 @@
 
 const express = require('express');
 const morgan = require('morgan');
-const argv = require('yargs').argv;
+const argv = require('minimist')(process.argv.slice(2));
 const fakeResponder = require('./fake-responder.js');
 const bundleMaker = require('./bundle.js');
 

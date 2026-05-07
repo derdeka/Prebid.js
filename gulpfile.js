@@ -2,7 +2,7 @@
 'use strict';
 
 var _ = require('lodash');
-var argv = require('yargs').argv;
+var argv = require('minimist')(process.argv.slice(2));
 var gulp = require('gulp');
 var PluginError = require('plugin-error');
 var fancyLog = require('fancy-log');
