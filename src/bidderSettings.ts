@@ -98,7 +98,7 @@ export class ScopedSettings<SETTINGS extends Record<string, any>, SCOPED extends
    * @returns all settings in the given scope, merged with the settings for the default scope.
    */
   settingsFor(scope): SETTINGS {
-    return mergeDeep({}, this.ownSettingsFor(null), this.ownSettingsFor(scope));
+    return mergeDeep({}, this.ownSettingsFor(null), this.ownSettingsFor(scope)) as SETTINGS;
   }
 
   /**

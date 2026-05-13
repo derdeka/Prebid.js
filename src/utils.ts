@@ -15,14 +15,14 @@ const consoleInfoExists = Boolean(consoleExists && window.console.info);
 const consoleWarnExists = Boolean(consoleExists && window.console.warn);
 const consoleErrorExists = Boolean(consoleExists && window.console.error);
 
-let eventEmitter;
+let eventEmitter: ((...args: any[]) => void) | undefined;
 
-export function _setEventEmitter(emitFn) {
+export function _setEventEmitter(emitFn: (...args: any[]) => void) {
   // called from events.js - this hoop is to avoid circular imports
   eventEmitter = emitFn;
 }
 
-function emitEvent(...args) {
+function emitEvent(...args: any[]) {
   if (eventEmitter != null) {
     eventEmitter(...args);
   }
@@ -77,10 +77,10 @@ export function getUniqueIdentifierStr() {
  * and y is replaced with a random hexadecimal digit from 8 to b.
  * https://gist.github.com/jed/982883 via node-uuid
  */
-export function generateUUID(placeholder) {
+export function generateUUID(placeholder?: any): string {
   return placeholder
     ? (placeholder ^ _getRandomData() >> placeholder / 4).toString(16)
-    : ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, generateUUID);
+    : (([1e7] as any) + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, generateUUID);
 }
 
 /**
@@ -95,14 +95,14 @@ function _getRandomData() {
   }
 }
 
-export function getBidIdParameter(key, paramsObj) {
+export function getBidIdParameter(key: string, paramsObj: Record<string, any>) {
   return paramsObj?.[key] || '';
 }
 
 // parse a query string object passed in bid params
 // bid params should be an object such as {key: "value", key1 : "value1"}
 // aliases to formatQS
-export function parseQueryStringParameters(queryObj) {
+export function parseQueryStringParameters(queryObj: Record<string, any>) {
   let result = '';
   for (var k in queryObj) {
     if (queryObj.hasOwnProperty(k)) { result += k + '=' + encodeURIComponent(queryObj[k]) + '&'; }
@@ -112,7 +112,7 @@ export function parseQueryStringParameters(queryObj) {
 }
 
 // transform an AdServer targeting bids into a query string to send to the adserver
-export function transformAdServerTargetingObj(targeting) {
+export function transformAdServerTargetingObj(targeting: Record<string, any>) {
   // we expect to receive targeting for a single slot at a time
   if (targeting && Object.getOwnPropertyNames(targeting).length > 0) {
     return Object.keys(targeting)
@@ -125,7 +125,7 @@ export function transformAdServerTargetingObj(targeting) {
 /**
  * Parse a GPT-Style general size Array like `[[300, 250]]` or `"300x250,970x90"` into an array of width, height tuples `[[300, 250]]` or '[[300,250], [970,90]]'
  */
-export function sizesToSizeTuples(sizes) {
+export function sizesToSizeTuples(sizes: string | number[] | number[][]) {
   if (typeof sizes === 'string') {
     // multiple sizes will be comma-separated
     return sizes
@@ -147,35 +147,35 @@ export function sizesToSizeTuples(sizes) {
  * @param  {(Array.<number[]>|Array.<number>)} sizeObj Input array or double array [300,250] or [[300,250], [728,90]]
  * @return {Array.<string>}  Array of strings like `["300x250"]` or `["300x250", "728x90"]`
  */
-export function parseSizesInput(sizeObj) {
+export function parseSizesInput(sizeObj: string | number[] | number[][]) {
   return sizesToSizeTuples(sizeObj).map(sizeTupleToSizeString);
 }
 
-export function sizeTupleToSizeString(size) {
+export function sizeTupleToSizeString(size: [number, number]) {
   return size[0] + 'x' + size[1]
 }
 
 // Parse a GPT style single size array, (i.e [300, 250])
 // into an AppNexus style string, (i.e. 300x250)
-export function parseGPTSingleSizeArray(singleSize) {
+export function parseGPTSingleSizeArray(singleSize: number[]) {
   if (isValidGPTSingleSize(singleSize)) {
     return sizeTupleToSizeString(singleSize);
   }
 }
 
-export function sizeTupleToRtbSize(size) {
+export function sizeTupleToRtbSize(size: [number, number]) {
   return { w: size[0], h: size[1] };
 }
 
 // Parse a GPT style single size array, (i.e [300, 250])
 // into OpenRTB-compatible (imp.banner.w/h, imp.banner.format.w/h, imp.video.w/h) object(i.e. {w:300, h:250})
-export function parseGPTSingleSizeArrayToRtbSize(singleSize) {
+export function parseGPTSingleSizeArrayToRtbSize(singleSize: number[]) {
   if (isValidGPTSingleSize(singleSize)) {
     return sizeTupleToRtbSize(singleSize)
   }
 }
 
-function isValidGPTSingleSize(singleSize) {
+function isValidGPTSingleSize(singleSize: any): singleSize is [number, number] {
   // if we aren't exactly 2 items in this array, it is invalid
   return isArray(singleSize) && singleSize.length === 2 && (!isNaN(singleSize[0]) && !isNaN(singleSize[1]));
 }
@@ -211,7 +211,7 @@ export function canAccessWindowTop() {
  * @param {Window} [win]
  * @returns {Window}
  */
-export function getFallbackWindow(win) {
+export function getFallbackWindow(win?: Window) {
   if (win) {
     return win;
   }
@@ -222,42 +222,42 @@ export function getFallbackWindow(win) {
  * Wrappers to console.(log | info | warn | error). Takes N arguments, the same as the native methods
  */
 // eslint-disable-next-line no-restricted-syntax
-export function logMessage() {
+export function logMessage(...args: any[]) {
   if (debugTurnedOn() && consoleLogExists) {
     // eslint-disable-next-line no-console
-    console.log.apply(console, decorateLog(arguments, 'MESSAGE:'));
+    console.log(...decorateLog(args, 'MESSAGE:'));
   }
 }
 
 // eslint-disable-next-line no-restricted-syntax
-export function logInfo() {
+export function logInfo(...args: any[]) {
   if (debugTurnedOn() && consoleInfoExists) {
     // eslint-disable-next-line no-console
-    console.info.apply(console, decorateLog(arguments, 'INFO:'));
+    console.info(...decorateLog(args, 'INFO:'));
   }
 }
 
 // eslint-disable-next-line no-restricted-syntax
-export function logWarn() {
+export function logWarn(...args: any[]) {
   if (debugTurnedOn() && consoleWarnExists) {
     // eslint-disable-next-line no-console
-    console.warn.apply(console, decorateLog(arguments, 'WARNING:'));
+    console.warn(...decorateLog(args, 'WARNING:'));
   }
-  emitEvent(EVENTS.AUCTION_DEBUG, { type: 'WARNING', arguments: arguments });
+  emitEvent(EVENTS.AUCTION_DEBUG, { type: 'WARNING', arguments: args });
 }
 
 // eslint-disable-next-line no-restricted-syntax
-export function logError() {
+export function logError(...args: any[]) {
   if (debugTurnedOn() && consoleErrorExists) {
     // eslint-disable-next-line no-console
-    console.error.apply(console, decorateLog(arguments, 'ERROR:'));
+    console.error(...decorateLog(args, 'ERROR:'));
   }
-  emitEvent(EVENTS.AUCTION_DEBUG, { type: 'ERROR', arguments: arguments });
+  emitEvent(EVENTS.AUCTION_DEBUG, { type: 'ERROR', arguments: args });
 }
 
-export function prefixLog(prefix) {
-  function decorate(fn) {
-    return function (...args) {
+export function prefixLog(prefix: string) {
+  function decorate(fn: (...args: any[]) => void) {
+    return function (...args: any[]) {
       fn(prefix, ...args);
     }
   }
@@ -269,7 +269,7 @@ export function prefixLog(prefix) {
   }
 }
 
-function decorateLog(args, prefix) {
+function decorateLog(args: any[], prefix?: string): any[] {
   args = [].slice.call(args);
   const bidder = config.getCurrentBidder();
 
@@ -281,7 +281,7 @@ function decorateLog(args, prefix) {
   args.unshift('%cPrebid' + (bidder ? `%c${bidder}` : ''));
   return args;
 
-  function label(color) {
+  function label(color: string) {
     return `display: inline-block; color: #fff; background: ${color}; padding: 1px 4px; border-radius: 3px;`
   }
 }
@@ -305,7 +305,7 @@ export const createIframe = (() => {
     frameBorder: '0',
     allowtransparency: 'true'
   }
-  return (doc, attrs, style = {}) => {
+  return (doc: Document, attrs: Record<string, any>, style: Record<string, string> = {}) => {
     const f = doc.createElement('iframe');
     Object.assign(f, Object.assign({}, DEFAULTS, attrs));
     Object.assign(f.style, style);
@@ -331,7 +331,7 @@ export function createInvisibleIframe() {
  *   Check if a given parameter name exists in query string
  *   and if it does return the value
  */
-export function getParameterByName(name) {
+export function getParameterByName(name: string) {
   return parseQS(getWindowLocation().search)[name] || '';
 }
 
@@ -341,7 +341,7 @@ export function getParameterByName(name) {
  * @param {*} object object to test
  * @return {Boolean} if object is empty
  */
-export function isEmpty(object) {
+export function isEmpty(object: any) {
   if (!object) return true;
   if (isArray(object) || isStr(object)) {
     return !(object.length > 0);
@@ -354,7 +354,7 @@ export function isEmpty(object) {
  * @param str string to test
  * @returns {boolean} if string is empty
  */
-export function isEmptyStr(str) {
+export function isEmptyStr(str: any) {
   return isStr(str) && (!str || str.length === 0);
 }
 
@@ -365,12 +365,12 @@ export function isEmptyStr(str) {
  * @param {Function} fn - The function to execute for each element. It receives three arguments: value, key, and the original object.
  * @returns {void}
  */
-export function _each(object, fn) {
+export function _each(object: any[] | Record<string, any>, fn: (value: any, key: any) => void) {
   if (isFn(object?.forEach)) return object.forEach(fn, this);
   Object.entries(object || {}).forEach(([k, v]) => fn.call(this, v, k));
 }
 
-export function contains(a, obj) {
+export function contains(a: any, obj: any) {
   return isFn(a?.includes) && a.includes(obj);
 }
 
@@ -381,7 +381,7 @@ export function contains(a, obj) {
  * @param {Function} callback - The function to execute for each element. It receives three arguments: value, key, and the original object.
  * @return {Array}
  */
-export function _map(object, callback) {
+export function _map(object: any[] | Record<string, any>, callback: (value: any, key: any, obj?: any) => any) {
   if (isFn(object?.map)) return object.map(callback);
   return Object.entries(object || {}).map(([k, v]) => callback(v, k, object))
 }
@@ -394,7 +394,7 @@ export function _map(object, callback) {
 * @param {Boolean} [asLastChildChild]
 * @return {HTML Element}
 */
-export function insertElement(elm, doc, target, asLastChildChild) {
+export function insertElement(elm: Node, doc?: Document, target?: string, asLastChildChild?: boolean) {
   doc = doc || document;
   let parentEl;
   if (target) {
@@ -420,9 +420,9 @@ export function insertElement(elm, doc, target, asLastChildChild) {
  * @param {Number} [timeout]
  * @returns {Promise}
  */
-export function waitForElementToLoad(element, timeout) {
-  let timer = null;
-  return new PbPromise((resolve) => {
+export function waitForElementToLoad(element: HTMLElement | HTMLImageElement, timeout?: number) {
+  let timer: number | null = null;
+  return new PbPromise<void>((resolve) => {
     const onLoad = function() {
       element.removeEventListener('load', onLoad);
       element.removeEventListener('error', onLoad);
@@ -445,7 +445,7 @@ export function waitForElementToLoad(element, timeout) {
  * @param  {function} [done] an optional exit callback, used when this usersync pixel is added during an async process
  * @param  {Number} [timeout] an optional timeout in milliseconds for the image to load before calling `done`
  */
-export function triggerPixel(url, done, timeout) {
+export function triggerPixel(url: string, done?: () => void, timeout?: number) {
   const img = new Image();
   if (done && internal.isFn(done)) {
     waitForElementToLoad(img, timeout).then(done);
@@ -458,7 +458,7 @@ export function triggerPixel(url, done, timeout) {
  * (though could be for other purposes)
  * @param {string} htmlCode snippet of HTML code used for tracking purposes
  */
-export function insertHtmlIntoIframe(htmlCode) {
+export function insertHtmlIntoIframe(htmlCode: string) {
   if (!htmlCode) {
     return;
   }
@@ -478,11 +478,11 @@ export function insertHtmlIntoIframe(htmlCode) {
  * @param  {function} [done] an optional exit callback, used when this usersync pixel is added during an async process
  * @param  {Number} [timeout] an optional timeout in milliseconds for the iframe to load before calling `done`
  */
-export function insertUserSyncIframe(url, done, timeout) {
+export function insertUserSyncIframe(url: string, done?: () => void, timeout?: number) {
   const iframeHtml = internal.createTrackPixelIframeHtml(url, false, 'allow-scripts allow-same-origin');
   const div = document.createElement('div');
   div.innerHTML = iframeHtml;
-  const iframe = div.firstChild;
+  const iframe = div.firstChild as HTMLElement;
   if (done && internal.isFn(done)) {
     waitForElementToLoad(iframe, timeout).then(done);
   }
@@ -495,7 +495,7 @@ export function insertUserSyncIframe(url, done, timeout) {
  * @param encode
  * @return {string}     HTML snippet that contains the img src = set to `url`
  */
-export function createTrackPixelHtml(url, encode = encodeURI) {
+export function createTrackPixelHtml(url: string, encode: (url: string) => string = encodeURI) {
   if (!url) {
     return '';
   }
@@ -511,8 +511,8 @@ export function createTrackPixelHtml(url, encode = encodeURI) {
  * @param url
  * @return {string}
  */
-export function encodeMacroURI(url) {
-  const macros = Array.from(url.matchAll(/\$({[^}]+})/g)).map(match => match[1]);
+export function encodeMacroURI(url: string) {
+  const macros = Array.from((url as any).matchAll(/\$({[^}]+})/g) as Iterable<RegExpMatchArray>).map(match => match[1]);
   return macros.reduce((str, macro) => {
     return str.replace('$' + encodeURIComponent(macro), '$' + macro)
   }, encodeURI(url))
@@ -525,7 +525,7 @@ export function encodeMacroURI(url) {
  * @param  {string} sandbox string if provided the sandbox attribute will be included with the given value
  * @return {string}     HTML snippet that contains the iframe src = set to `url`
  */
-export function createTrackPixelIframeHtml(url, encodeUri = true, sandbox = '') {
+export function createTrackPixelIframeHtml(url: string, encodeUri = true, sandbox = '') {
   if (!url) {
     return '';
   }
@@ -547,15 +547,15 @@ export function createTrackPixelIframeHtml(url, encodeUri = true, sandbox = '') 
     </iframe>`;
 }
 
-export function uniques(value, index, arry) {
+export function uniques<T>(value: T, index: number, arry: T[]) {
   return arry.indexOf(value) === index;
 }
 
-export function flatten(a, b) {
+export function flatten<T>(a: T[], b: T | T[]) {
   return a.concat(b);
 }
 
-export function getBidRequest(id, bidderRequests) {
+export function getBidRequest(id: string, bidderRequests: Array<{ bids: any[] }>) {
   if (!id) {
     return;
   }
@@ -563,11 +563,11 @@ export function getBidRequest(id, bidderRequests) {
     .find(bid => ['bidId', 'adId', 'bid_id'].some(prop => bid[prop] === id))
 }
 
-export function getValue(obj, key) {
+export function getValue(obj: Record<string, any>, key: string) {
   return obj[key];
 }
 
-export function getBidderCodes(adUnits) {
+export function getBidderCodes(adUnits: Array<{ bids?: Array<{ bidder?: string }> }>) {
   // this could memoize adUnits
   return adUnits.map(unit => unit.bids.map(bid => bid.bidder)
     .reduce(flatten, [])).reduce(flatten, []).filter((bidder) => typeof bidder !== 'undefined').filter(uniques);
@@ -585,7 +585,7 @@ export function isApnGetTagDefined() {
   }
 }
 
-export const sortByHighestCpm = (a, b) => {
+export const sortByHighestCpm = (a: { cpm: number }, b: { cpm: number }) => {
   return b.cpm - a.cpm;
 }
 
@@ -595,7 +595,7 @@ export const sortByHighestCpm = (a, b) => {
  * https://bost.ocks.org/mike/shuffle/
  * istanbul ignore next
  */
-export function shuffle(array) {
+export function shuffle<T>(array: T[]) {
   let counter = array.length;
 
   // while there are elements in the array
@@ -631,7 +631,7 @@ export function isSafeFrameWindow() {
     return false;
   }
 
-  const ws = internal.getWindowSelf();
+  const ws = internal.getWindowSelf() as any;
   return !!(ws.$sf && ws.$sf.ext);
 }
 
@@ -642,7 +642,7 @@ export function isSafeFrameWindow() {
  */
 export function getSafeframeGeometry() {
   try {
-    const ws = getWindowSelf();
+    const ws = getWindowSelf() as any;
     return (typeof ws.$sf.ext.geom === 'function') ? ws.$sf.ext.geom() : undefined;
   } catch (e) {
     logError('Error getting SafeFrame geometry', e);
@@ -662,18 +662,18 @@ export function isChromeIOSBrowser() {
   return /crios|crmo/i.test(navigator.userAgent);
 }
 
-export function replaceMacros(str, subs) {
+export function replaceMacros(str: string | undefined, subs: Record<string, any>) {
   if (!str) return;
   return Object.entries(subs).reduce((str, [key, val]) => {
     return str.replace(new RegExp('\\$\\{' + key + '\\}', 'g'), val || '');
   }, str);
 }
 
-export function replaceAuctionPrice(str, cpm) {
+export function replaceAuctionPrice(str: string | undefined, cpm: number | string) {
   return replaceMacros(str, { AUCTION_PRICE: cpm })
 }
 
-export function replaceClickThrough(str, clicktag) {
+export function replaceClickThrough(str: string | undefined, clicktag: string) {
   if (!str || !clicktag || typeof clicktag !== 'string') return;
   return str.replace(/\${CLICKTHROUGH}/g, clicktag);
 }
@@ -698,7 +698,7 @@ export function getPerformanceNow() {
  * @param {Window} w The window object used to perform the api call. default to window.self
  * @returns {number}
  */
-export function getDomLoadingDuration(w) {
+export function getDomLoadingDuration(w?: Window) {
   let domLoadingDuration = -1;
 
   w = w || getWindowSelf();
@@ -747,15 +747,15 @@ export function checkCookieSupport() {
  * @param {number} numRequiredCalls The number of times which the returned function needs to be called before
  *   func is.
  */
-export function delayExecution(func, numRequiredCalls) {
+export function delayExecution(func: (...args: any[]) => void, numRequiredCalls: number) {
   if (numRequiredCalls < 1) {
     throw new Error(`numRequiredCalls must be a positive number. Got ${numRequiredCalls}`);
   }
   let numCalls = 0;
-  return function () {
+  return function (...args: any[]) {
     numCalls++;
     if (numCalls === numRequiredCalls) {
-      func.apply(this, arguments);
+      func.apply(this, args);
     }
   }
 }
@@ -766,9 +766,10 @@ export function delayExecution(func, numRequiredCalls) {
  * @param {string} key
  * @returns {Object} {${key_value}: ${groupByArray}, key_value: {groupByArray}}
  */
-export function groupBy(xs, key) {
-  return xs.reduce(function(rv, x) {
-    (rv[x[key]] = rv[x[key]] || []).push(x);
+export function groupBy(xs: any[], key: string): Record<string, any[]> {
+  return xs.reduce(function(rv: Record<string, any[]>, x) {
+    const k = String(x[key]);
+    (rv[k] = rv[k] || []).push(x);
     return rv;
   }, {});
 }
@@ -778,7 +779,7 @@ export function groupBy(xs, key) {
  * @param mediaTypes mediaTypes parameter to validate
  * @return If object is valid
  */
-export function isValidMediaTypes(mediaTypes) {
+export function isValidMediaTypes(mediaTypes: Record<string, any>) {
   const SUPPORTED_MEDIA_TYPES = ['banner', 'native', 'video', 'audio'];
   const SUPPORTED_STREAM_TYPES = ['instream', 'outstream'];
 
@@ -802,7 +803,7 @@ export function isValidMediaTypes(mediaTypes) {
  * @param {string} bidder code
  * @return {Array} user configured param for the given bidder adunit configuration
  */
-export function getUserConfiguredParams(adUnits, adUnitCode, bidder) {
+export function getUserConfiguredParams(adUnits: Array<{ code: string; bids: Array<{ bidder: string; params?: any }> }>, adUnitCode: string, bidder: string) {
   return adUnits
     .filter(adUnit => adUnit.code === adUnitCode)
     .flatMap((adUnit) => adUnit.bids)
@@ -810,26 +811,28 @@ export function getUserConfiguredParams(adUnits, adUnitCode, bidder) {
     .map((bidderData) => bidderData.params || {});
 }
 
-export const compareCodeAndSlot = (slot, adUnitCode) => slot.getAdUnitPath() === adUnitCode || slot.getSlotElementId() === adUnitCode;
+export const compareCodeAndSlot = (slot: googletag.Slot, adUnitCode: string) => slot.getAdUnitPath() === adUnitCode || slot.getSlotElementId() === adUnitCode;
 
 /**
  * Returns filter function to match adUnitCode in slot
  * @param slot GoogleTag slot
  * @return filter function
  */
-export function isAdUnitCodeMatchingSlot(slot) {
+export function isAdUnitCodeMatchingSlot(slot: googletag.Slot) {
   const customGptSlotMatching = config.getConfig('customGptSlotMatching');
   const match = isFn(customGptSlotMatching) && customGptSlotMatching(slot);
-  return isFn(match) ? match : (adUnitCode) => compareCodeAndSlot(slot, adUnitCode);
+  return isFn(match) ? match : (adUnitCode: string) => compareCodeAndSlot(slot, adUnitCode);
 }
 
 /**
  * Constructs warning message for when unsupported bidders are dropped from an adunit
  * @param {Object} adUnit ad unit from which the bidder is being dropped
+ * @param {string} adUnit.code the ad unit code
+ * @param {Object} [adUnit.mediaTypes] the ad unit media types
  * @param {string} bidder bidder code that is not compatible with the adUnit
  * @return {string} warning message to display when condition is met
  */
-export function unsupportedBidderMessage(adUnit, bidder) {
+export function unsupportedBidderMessage(adUnit: { code: string; mediaTypes?: Record<string, any> }, bidder: string) {
   const mediaType = Object.keys(adUnit.mediaTypes || { 'banner': 'banner' }).join(', ');
 
   return `
@@ -843,7 +846,7 @@ export function unsupportedBidderMessage(adUnit, bidder) {
  * Returns a new object with undefined properties removed from given object
  * @param obj the object to clean
  */
-export function cleanObj(obj) {
+export function cleanObj(obj: Record<string, any>) {
   return Object.fromEntries(Object.entries(obj).filter(([_, v]) => typeof v !== 'undefined'))
 }
 
@@ -852,7 +855,7 @@ export function cleanObj(obj) {
  * @param obj the original object
  * @param properties An array of desired properties
  */
-export function pick(obj, properties) {
+export function pick(obj: Record<string, any>, properties: ReadonlyArray<string | ((...args: any[]) => any)>) {
   if (typeof obj !== 'object') {
     return {};
   }
@@ -871,7 +874,7 @@ export function pick(obj, properties) {
 
     let value = obj[prop];
     if (typeof properties[i + 1] === 'function') {
-      value = properties[i + 1](value, newObj);
+      value = (properties[i + 1] as (...args: any[]) => any)(value, newObj);
     }
     if (typeof value !== 'undefined') {
       newObj[newProp] = value;
@@ -881,7 +884,7 @@ export function pick(obj, properties) {
   }, {});
 }
 
-export function parseQS(query) {
+export function parseQS(query: string): Record<string, any> {
   return !query ? {} : query
     .replace(/^\?/, '')
     .split('&')
@@ -898,7 +901,7 @@ export function parseQS(query) {
     }, {});
 }
 
-export function formatQS(query) {
+export function formatQS(query: Record<string, any>) {
   return Object
     .keys(query)
     .map(k => Array.isArray(query[k])
@@ -907,7 +910,7 @@ export function formatQS(query) {
     .join('&');
 }
 
-export function parseUrl(url, options) {
+export function parseUrl(url: string, options?: Record<string, any>) {
   const parsed = document.createElement('a');
   if (options && 'noDecodeWholeURL' in options && options.noDecodeWholeURL) {
     parsed.href = url;
@@ -922,18 +925,18 @@ export function parseUrl(url, options) {
     hostname: parsed.hostname,
     port: +parsed.port,
     pathname: parsed.pathname.replace(/^(?!\/)/, '/'),
-    search: (qsAsString) ? parsed.search : internal.parseQS(parsed.search || ''),
+    search: (qsAsString ? parsed.search : internal.parseQS(parsed.search || '')) as any,
     hash: (parsed.hash || '').replace(/^#/, ''),
     host: parsed.host || window.location.host
   };
 }
 
-export function buildUrl(obj) {
+export function buildUrl(obj: { protocol?: string; host?: string; hostname?: string; port?: number; pathname?: string; search?: string | Record<string, any>; hash?: string }) {
   return (obj.protocol || 'http') + '://' +
     (obj.host ||
       obj.hostname + (obj.port ? `:${obj.port}` : '')) +
     (obj.pathname || '') +
-    (obj.search ? `?${internal.formatQS(obj.search || '')}` : '') +
+    (obj.search ? `?${internal.formatQS(obj.search as Record<string, any>)}` : '') +
     (obj.hash ? `#${obj.hash}` : '');
 }
 
@@ -945,7 +948,7 @@ export function buildUrl(obj) {
  * @param {boolean} [options.checkTypes=false] - If set, two objects with identical properties but different constructors will *not* be considered equivalent.
  * @returns {boolean} - Returns `true` if the objects are equivalent, `false` otherwise.
  */
-export function deepEqual(obj1, obj2, { checkTypes = false } = {}) {
+export function deepEqual(obj1: any, obj2: any, { checkTypes = false } = {}) {
   // Quick reference check
   if (obj1 === obj2) return true;
 
@@ -996,7 +999,7 @@ export function deepEqual(obj1, obj2, { checkTypes = false } = {}) {
   return true;
 }
 
-export function mergeDeep(target, ...sources) {
+export function mergeDeep(target: Record<string, any>, ...sources: any[]): Record<string, any> {
   for (let i = 0; i < sources.length; i++) {
     const source = sources[i];
     if (!isPlainObject(source)) {
@@ -1007,7 +1010,7 @@ export function mergeDeep(target, ...sources) {
   return target;
 }
 
-function mergeDeepHelper(target, source) {
+function mergeDeepHelper(target: any, source: any) {
   // quick check
   if (!isPlainObject(target) || !isPlainObject(source)) {
     return;
@@ -1031,9 +1034,10 @@ function mergeDeepHelper(target, source) {
         target[key] = [...val];
       } else {
         // deduplicate
+        const targetArr = target[key] as any[];
         val.forEach(obj => {
-          if (!target[key].some(item => deepEqual(item, obj))) {
-            target[key].push(obj);
+          if (!targetArr.some(item => deepEqual(item, obj))) {
+            targetArr.push(obj);
           }
         });
       }
@@ -1051,10 +1055,8 @@ function mergeDeepHelper(target, source) {
  * @param seed (optional)
  * @returns {string}
  */
-export function cyrb53Hash(str, seed = 0) {
-  // IE doesn't support imul
-  // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Math/imul#Polyfill
-  const imul = function(opA, opB) {
+export function cyrb53Hash(str: string, seed = 0) {
+  const imul = function(opA: number, opB: number) {
     if (isFn(Math.imul)) {
       return Math.imul(opA, opB);
     } else {
@@ -1074,7 +1076,7 @@ export function cyrb53Hash(str, seed = 0) {
 
   let h1 = 0xdeadbeef ^ seed;
   let h2 = 0x41c6ce57 ^ seed;
-  for (let i = 0, ch; i < str.length; i++) {
+  for (let i = 0, ch: number; i < str.length; i++) {
     ch = str.charCodeAt(i);
     h1 = imul(h1 ^ ch, 2654435761);
     h2 = imul(h2 ^ ch, 1597334677);
@@ -1089,13 +1091,13 @@ export function cyrb53Hash(str, seed = 0) {
  * @param data
  * @returns {any}
  */
-export function safeJSONParse(data) {
+export function safeJSONParse(data: string) {
   try {
     return JSON.parse(data);
   } catch (e) {}
 }
 
-export function safeJSONEncode(data) {
+export function safeJSONEncode(data: any) {
   try {
     return JSON.stringify(data);
   } catch (e) {
@@ -1111,12 +1113,12 @@ export function safeJSONEncode(data) {
  *        By default, the first argument is used as key.
  * @return {*}
  */
-export function memoize(fn, key = function (arg) { return arg; }) {
+export function memoize<T extends (...args: any[]) => any>(fn: T, key: (...args: any[]) => any = (arg) => arg) {
   const cache = new Map();
-  const memoized = function () {
-    const cacheKey = key.apply(this, arguments);
+  const memoized = function (...args: any[]) {
+    const cacheKey = key.apply(this, args);
     if (!cache.has(cacheKey)) {
-      cache.set(cacheKey, fn.apply(this, arguments));
+      cache.set(cacheKey, fn.apply(this, args));
     }
     return cache.get(cacheKey);
   }
@@ -1145,7 +1147,7 @@ export function getUnixTimestampFromNow(timeValue = 0, timeUnit = 'd') {
  * @param {Object} obj the object
  * @returns {Array}
  */
-export function convertObjectToArray(obj) {
+export function convertObjectToArray(obj: Record<string, any>) {
   return Object.keys(obj).map(key => {
     return { [key]: obj[key] };
   });
@@ -1156,7 +1158,7 @@ export function convertObjectToArray(obj) {
  * @param {HTMLScriptElement} script
  * @param {object} attributes
  */
-export function setScriptAttributes(script, attributes) {
+export function setScriptAttributes(script: HTMLScriptElement, attributes: Record<string, string>) {
   Object.entries(attributes).forEach(([k, v]) => script.setAttribute(k, v))
 }
 
@@ -1170,7 +1172,7 @@ export function setScriptAttributes(script, attributes) {
  *   if the element is not found, return the index of the first element that's greater;
  *   if no greater element exists, return `arr.length`)
  */
-export function binarySearch(arr, el, key = (el) => el) {
+export function binarySearch<T>(arr: T[], el: T, key: (el: T) => any = (el) => el) {
   let left = 0;
   let right = arr.length && arr.length - 1;
   const target = key(el);
@@ -1196,7 +1198,7 @@ export function binarySearch(arr, el, key = (el) => el) {
  * @param {Set} checkedObjects - A set of properties that have already been checked.
  * @returns {boolean} - Returns true if the object has non-serializable properties, false otherwise.
  */
-export function hasNonSerializableProperty(obj, checkedObjects = new Set()) {
+export function hasNonSerializableProperty(obj: Record<string, any>, checkedObjects: Set<any> = new Set()) {
   for (const key in obj) {
     const value = obj[key];
     const type = typeof value;
@@ -1234,8 +1236,8 @@ export function hasNonSerializableProperty(obj, checkedObjects = new Set()) {
  * @param {String} key - Key of nested property.
  * @returns {any|undefined} - Value of nested property.
  */
-export function setOnAny(collection, key) {
-  for (let i = 0, result; i < collection.length; i++) {
+export function setOnAny(collection: any[], key: string) {
+  for (let i = 0, result: any; i < collection.length; i++) {
     result = deepAccess(collection[i], key);
     if (result) {
       return result;
@@ -1244,7 +1246,7 @@ export function setOnAny(collection, key) {
   return undefined;
 }
 
-export function extractDomainFromHost(pageHost) {
+export function extractDomainFromHost(pageHost: string) {
   let domain = null;
   try {
     const domains = /[-\w]+\.([-\w]+|[-\w]{3,}|[-\w]{1,3}\.[-\w]{2})$/i.exec(pageHost);
@@ -1262,11 +1264,11 @@ export function extractDomainFromHost(pageHost) {
   return domain;
 }
 
-export function triggerNurlWithCpm(bid, cpm) {
+export function triggerNurlWithCpm(bid: { nurl?: string }, cpm: number | string) {
   if (isStr(bid.nurl) && bid.nurl !== '') {
     bid.nurl = bid.nurl.replace(
       /\${AUCTION_PRICE}/,
-      cpm
+      String(cpm)
     );
     triggerPixel(bid.nurl);
   }
@@ -1275,7 +1277,7 @@ export function triggerNurlWithCpm(bid, cpm) {
 // To ensure that isGzipCompressionSupported() doesn’t become an overhead, we have used memoization to cache the result after the first execution.
 // This way, even if the function is called multiple times, it will only perform the actual check once and return the cached result in subsequent calls.
 export const isGzipCompressionSupported = (function () {
-  let cachedResult; // Store the result
+  let cachedResult: boolean | undefined;
 
   return function () {
     if (cachedResult !== undefined) {
@@ -1298,7 +1300,7 @@ export const isGzipCompressionSupported = (function () {
 })();
 
 // Make sure to use isGzipCompressionSupported before calling this function
-export async function compressDataWithGZip(data) {
+export async function compressDataWithGZip(data: any) {
   if (typeof data !== 'string') { // TextEncoder (below) expects a string
     data = JSON.stringify(data);
   }

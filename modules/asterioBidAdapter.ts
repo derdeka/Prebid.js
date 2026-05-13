@@ -39,6 +39,8 @@ type AsterioServerBid = {
   mediaType?: string;
   format?: string;
   adomain?: string[];
+  vastXml?: string;
+  meta?: Record<string, any>;
 };
 
 export const spec: BidderSpec<typeof BIDDER_CODE> = {
