@@ -1,4 +1,4 @@
-import Adapter from '../adapter.js';
+import Adapter from '../adapter.ts';
 import adapterManager, {
   type BidderRequest,
   type BidRequest,

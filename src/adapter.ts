@@ -1,7 +1,7 @@
-export default function Adapter(code) {
-  var bidderCode = code;
+export default function Adapter(code: string) {
+  let bidderCode = code;
 
-  function setBidderCode(code) {
+  function setBidderCode(code: string) {
     bidderCode = code;
   }
 
