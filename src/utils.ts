@@ -15,14 +15,14 @@ const consoleInfoExists = Boolean(consoleExists && window.console.info);
 const consoleWarnExists = Boolean(consoleExists && window.console.warn);
 const consoleErrorExists = Boolean(consoleExists && window.console.error);
 
-let eventEmitter: ((...args: any[]) => void) | undefined;
+let eventEmitter: ((...args: unknown[]) => void) | undefined;
 
-export function _setEventEmitter(emitFn: (...args: any[]) => void) {
+export function _setEventEmitter(emitFn: (...args: unknown[]) => void): void {
   // called from events.js - this hoop is to avoid circular imports
   eventEmitter = emitFn;
 }
 
-function emitEvent(...args: any[]) {
+function emitEvent(...args: unknown[]): void {
   if (eventEmitter != null) {
     eventEmitter(...args);
   }
@@ -80,7 +80,7 @@ export function getUniqueIdentifierStr() {
 export function generateUUID(placeholder?: any): string {
   return placeholder
     ? (placeholder ^ _getRandomData() >> placeholder / 4).toString(16)
-    : (([1e7] as any) + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, generateUUID);
+    : ('' + [1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, generateUUID);
 }
 
 /**
@@ -151,7 +151,7 @@ export function parseSizesInput(sizeObj: string | number[] | number[][]) {
   return sizesToSizeTuples(sizeObj).map(sizeTupleToSizeString);
 }
 
-export function sizeTupleToSizeString(size: [number, number]) {
+export function sizeTupleToSizeString(size: [number, number]): string {
   return size[0] + 'x' + size[1]
 }
 
@@ -180,23 +180,23 @@ function isValidGPTSingleSize(singleSize: any): singleSize is [number, number] {
   return isArray(singleSize) && singleSize.length === 2 && (!isNaN(singleSize[0]) && !isNaN(singleSize[1]));
 }
 
-export function getWindowTop() {
+export function getWindowTop(): Window {
   return window.top;
 }
 
-export function getWindowSelf() {
+export function getWindowSelf(): Window {
   return window.self;
 }
 
-export function getWindowLocation() {
+export function getWindowLocation(): Location {
   return window.location;
 }
 
-export function getDocument() {
+export function getDocument(): Document {
   return document;
 }
 
-export function canAccessWindowTop() {
+export function canAccessWindowTop(): boolean {
   try {
     if (internal.getWindowTop().location.href) {
       return true;
@@ -211,7 +211,7 @@ export function canAccessWindowTop() {
  * @param {Window} [win]
  * @returns {Window}
  */
-export function getFallbackWindow(win?: Window) {
+export function getFallbackWindow(win?: Window): Window {
   if (win) {
     return win;
   }
@@ -420,7 +420,7 @@ export function insertElement(elm: Node, doc?: Document, target?: string, asLast
  * @param {Number} [timeout]
  * @returns {Promise}
  */
-export function waitForElementToLoad(element: HTMLElement | HTMLImageElement, timeout?: number) {
+export function waitForElementToLoad(element: HTMLElement, timeout?: number): Promise<void> {
   let timer: number | null = null;
   return new PbPromise<void>((resolve) => {
     const onLoad = function() {
@@ -445,7 +445,7 @@ export function waitForElementToLoad(element: HTMLElement | HTMLImageElement, ti
  * @param  {function} [done] an optional exit callback, used when this usersync pixel is added during an async process
  * @param  {Number} [timeout] an optional timeout in milliseconds for the image to load before calling `done`
  */
-export function triggerPixel(url: string, done?: () => void, timeout?: number) {
+export function triggerPixel(url: string, done?: () => void, timeout?: number): void {
   const img = new Image();
   if (done && internal.isFn(done)) {
     waitForElementToLoad(img, timeout).then(done);
@@ -458,7 +458,7 @@ export function triggerPixel(url: string, done?: () => void, timeout?: number) {
  * (though could be for other purposes)
  * @param {string} htmlCode snippet of HTML code used for tracking purposes
  */
-export function insertHtmlIntoIframe(htmlCode: string) {
+export function insertHtmlIntoIframe(htmlCode: string): void {
   if (!htmlCode) {
     return;
   }
@@ -478,7 +478,7 @@ export function insertHtmlIntoIframe(htmlCode: string) {
  * @param  {function} [done] an optional exit callback, used when this usersync pixel is added during an async process
  * @param  {Number} [timeout] an optional timeout in milliseconds for the iframe to load before calling `done`
  */
-export function insertUserSyncIframe(url: string, done?: () => void, timeout?: number) {
+export function insertUserSyncIframe(url: string, done?: () => void, timeout?: number): void {
   const iframeHtml = internal.createTrackPixelIframeHtml(url, false, 'allow-scripts allow-same-origin');
   const div = document.createElement('div');
   div.innerHTML = iframeHtml;
@@ -495,7 +495,7 @@ export function insertUserSyncIframe(url: string, done?: () => void, timeout?: n
  * @param encode
  * @return {string}     HTML snippet that contains the img src = set to `url`
  */
-export function createTrackPixelHtml(url: string, encode: (url: string) => string = encodeURI) {
+export function createTrackPixelHtml(url: string, encode: (url: string) => string = encodeURI): string {
   if (!url) {
     return '';
   }
@@ -511,7 +511,7 @@ export function createTrackPixelHtml(url: string, encode: (url: string) => strin
  * @param url
  * @return {string}
  */
-export function encodeMacroURI(url: string) {
+export function encodeMacroURI(url: string): string {
   const macros = Array.from((url as any).matchAll(/\$({[^}]+})/g) as Iterable<RegExpMatchArray>).map(match => match[1]);
   return macros.reduce((str, macro) => {
     return str.replace('$' + encodeURIComponent(macro), '$' + macro)
@@ -525,7 +525,7 @@ export function encodeMacroURI(url: string) {
  * @param  {string} sandbox string if provided the sandbox attribute will be included with the given value
  * @return {string}     HTML snippet that contains the iframe src = set to `url`
  */
-export function createTrackPixelIframeHtml(url: string, encodeUri = true, sandbox = '') {
+export function createTrackPixelIframeHtml(url: string, encodeUri = true, sandbox = ''): string {
   if (!url) {
     return '';
   }
@@ -573,19 +573,15 @@ export function getBidderCodes(adUnits: Array<{ bids?: Array<{ bidder?: string }
     .reduce(flatten, [])).reduce(flatten, []).filter((bidder) => typeof bidder !== 'undefined').filter(uniques);
 }
 
-export function isGptPubadsDefined() {
-  if (window.googletag && isFn(window.googletag.pubads) && isFn(window.googletag.pubads().getSlots)) {
-    return true;
-  }
+export function isGptPubadsDefined(): boolean {
+  return !!(window.googletag && isFn(window.googletag.pubads) && isFn(window.googletag.pubads().getSlots));
 }
 
-export function isApnGetTagDefined() {
-  if (window.apntag && isFn(window.apntag.getTag)) {
-    return true;
-  }
+export function isApnGetTagDefined(): boolean {
+  return !!(window.apntag && isFn(window.apntag.getTag));
 }
 
-export const sortByHighestCpm = (a: { cpm: number }, b: { cpm: number }) => {
+export const sortByHighestCpm = (a: { cpm: number }, b: { cpm: number }): number => {
   return b.cpm - a.cpm;
 }
 
@@ -595,7 +591,7 @@ export const sortByHighestCpm = (a: { cpm: number }, b: { cpm: number }) => {
  * https://bost.ocks.org/mike/shuffle/
  * istanbul ignore next
  */
-export function shuffle<T>(array: T[]) {
+export function shuffle<T>(array: T[]): T[] {
   let counter = array.length;
 
   // while there are elements in the array
@@ -615,7 +611,7 @@ export function shuffle<T>(array: T[]) {
   return array;
 }
 
-export function inIframe() {
+export function inIframe(): boolean {
   try {
     return internal.getWindowSelf() !== internal.getWindowTop();
   } catch (e) {
@@ -626,12 +622,12 @@ export function inIframe() {
 /**
  * https://iabtechlab.com/wp-content/uploads/2016/03/SafeFrames_v1.1_final.pdf
  */
-export function isSafeFrameWindow() {
+export function isSafeFrameWindow(): boolean {
   if (!inIframe()) {
     return false;
   }
 
-  const ws = internal.getWindowSelf() as any;
+  const ws = internal.getWindowSelf();
   return !!(ws.$sf && ws.$sf.ext);
 }
 
@@ -640,45 +636,45 @@ export function isSafeFrameWindow() {
  * @see https://iabtechlab.com/wp-content/uploads/2016/03/SafeFrames_v1.1_final.pdf — 5.4 Function $sf.ext.geom
  * @returns {Object | undefined} geometric information about the container
  */
-export function getSafeframeGeometry() {
+export function getSafeframeGeometry(): SafeFrameGeometry | undefined {
   try {
-    const ws = getWindowSelf() as any;
-    return (typeof ws.$sf.ext.geom === 'function') ? ws.$sf.ext.geom() : undefined;
+    const ws = getWindowSelf();
+    return isFn(ws.$sf.ext.geom) ? ws.$sf.ext.geom() : undefined;
   } catch (e) {
     logError('Error getting SafeFrame geometry', e);
     return undefined;
   }
 }
 
-export function isSafariBrowser() {
+export function isSafariBrowser(): boolean {
   return /^((?!chrome|android|crios|fxios).)*safari/i.test(navigator.userAgent);
 }
 
-export function isFirefoxBrowser() {
+export function isFirefoxBrowser(): boolean {
   return /firefox|fxios/i.test(navigator.userAgent);
 }
 
-export function isChromeIOSBrowser() {
+export function isChromeIOSBrowser(): boolean {
   return /crios|crmo/i.test(navigator.userAgent);
 }
 
-export function replaceMacros(str: string | undefined, subs: Record<string, any>) {
+export function replaceMacros(str: string | undefined, subs: Record<string, any>): string | undefined {
   if (!str) return;
   return Object.entries(subs).reduce((str, [key, val]) => {
     return str.replace(new RegExp('\\$\\{' + key + '\\}', 'g'), val || '');
   }, str);
 }
 
-export function replaceAuctionPrice(str: string | undefined, cpm: number | string) {
+export function replaceAuctionPrice(str: string | undefined, cpm: number | string): string | undefined {
   return replaceMacros(str, { AUCTION_PRICE: cpm })
 }
 
-export function replaceClickThrough(str: string | undefined, clicktag: string) {
+export function replaceClickThrough(str: string | undefined, clicktag: string): string | undefined {
   if (!str || !clicktag || typeof clicktag !== 'string') return;
   return str.replace(/\${CLICKTHROUGH}/g, clicktag);
 }
 
-export function timestamp() {
+export function timestamp(): number {
   return new Date().getTime();
 }
 
@@ -686,7 +682,7 @@ export function timestamp() {
  * The returned value represents the time elapsed since the time origin. @see https://developer.mozilla.org/en-US/docs/Web/API/Performance/now
  * @returns {number}
  */
-export function getPerformanceNow() {
+export function getPerformanceNow(): number {
   return (window.performance && window.performance.now && window.performance.now()) || 0;
 }
 
@@ -698,7 +694,7 @@ export function getPerformanceNow() {
  * @param {Window} w The window object used to perform the api call. default to window.self
  * @returns {number}
  */
-export function getDomLoadingDuration(w?: Window) {
+export function getDomLoadingDuration(w?: Window): number {
   let domLoadingDuration = -1;
 
   w = w || getWindowSelf();
@@ -721,7 +717,7 @@ export function getDomLoadingDuration(w?: Window) {
  * When the deviceAccess flag config option is false, no cookies should be read or set
  * @returns {boolean}
  */
-export function hasDeviceAccess() {
+export function hasDeviceAccess(): boolean {
   return config.getConfig('deviceAccess') !== false;
 }
 
@@ -948,7 +944,7 @@ export function buildUrl(obj: { protocol?: string; host?: string; hostname?: str
  * @param {boolean} [options.checkTypes=false] - If set, two objects with identical properties but different constructors will *not* be considered equivalent.
  * @returns {boolean} - Returns `true` if the objects are equivalent, `false` otherwise.
  */
-export function deepEqual(obj1: any, obj2: any, { checkTypes = false } = {}) {
+export function deepEqual(obj1: any, obj2: any, { checkTypes = false } = {}): boolean {
   // Quick reference check
   if (obj1 === obj2) return true;
 
@@ -1055,7 +1051,7 @@ function mergeDeepHelper(target: any, source: any) {
  * @param seed (optional)
  * @returns {string}
  */
-export function cyrb53Hash(str: string, seed = 0) {
+export function cyrb53Hash(str: string, seed: number = 0): string {
   const imul = function(opA: number, opB: number) {
     if (isFn(Math.imul)) {
       return Math.imul(opA, opB);
@@ -1091,13 +1087,13 @@ export function cyrb53Hash(str: string, seed = 0) {
  * @param data
  * @returns {any}
  */
-export function safeJSONParse(data: string) {
+export function safeJSONParse<T>(data: string): T | undefined {
   try {
     return JSON.parse(data);
   } catch (e) {}
 }
 
-export function safeJSONEncode(data: any) {
+export function safeJSONEncode(data: any): string {
   try {
     return JSON.stringify(data);
   } catch (e) {
@@ -1132,7 +1128,7 @@ export function memoize<T extends (...args: any[]) => any>(fn: T, key: (...args:
  * @param {string} timeUnit defaults to days (or 'd'), use 'm' for minutes. Any parameter that isn't 'd' or 'm' will return Date.now().
  * @returns {number}
  */
-export function getUnixTimestampFromNow(timeValue = 0, timeUnit = 'd') {
+export function getUnixTimestampFromNow(timeValue: number = 0, timeUnit: 'm' | 'd' = 'd'): number {
   const acceptableUnits = ['m', 'd'];
   if (acceptableUnits.indexOf(timeUnit) < 0) {
     return Date.now();
@@ -1158,7 +1154,7 @@ export function convertObjectToArray(obj: Record<string, any>) {
  * @param {HTMLScriptElement} script
  * @param {object} attributes
  */
-export function setScriptAttributes(script: HTMLScriptElement, attributes: Record<string, string>) {
+export function setScriptAttributes(script: HTMLScriptElement, attributes: Record<string, string>): void {
   Object.entries(attributes).forEach(([k, v]) => script.setAttribute(k, v))
 }
 
@@ -1198,7 +1194,7 @@ export function binarySearch<T>(arr: T[], el: T, key: (el: T) => any = (el) => e
  * @param {Set} checkedObjects - A set of properties that have already been checked.
  * @returns {boolean} - Returns true if the object has non-serializable properties, false otherwise.
  */
-export function hasNonSerializableProperty(obj: Record<string, any>, checkedObjects: Set<any> = new Set()) {
+export function hasNonSerializableProperty(obj: Record<string, any>, checkedObjects: Set<any> = new Set()): boolean {
   for (const key in obj) {
     const value = obj[key];
     const type = typeof value;
