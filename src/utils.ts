@@ -1,32 +1,23 @@
 import { config } from './config.js';
 
-import { EVENTS } from './constants.js';
 import { PbPromise } from './utils/promise.js';
 import deepAccess from 'dlv/index.js';
 import { isArray, isFn, isStr, isPlainObject } from './utils/objects.js';
+import * as logging from './utils/logging.js';
+import * as debug from './utils/debug.js';
 
 export { deepAccess };
 export { dset as deepSetValue } from 'dset';
-export * from './utils/objects.js'
+export * from './utils/objects.js';
 export { getWinDimensions, resetWinDimensions, getScreenOrientation } from './utils/winDimensions.js';
-const consoleExists = Boolean(window.console);
-const consoleLogExists = Boolean(consoleExists && window.console.log);
-const consoleInfoExists = Boolean(consoleExists && window.console.info);
-const consoleWarnExists = Boolean(consoleExists && window.console.warn);
-const consoleErrorExists = Boolean(consoleExists && window.console.error);
 
-let eventEmitter: ((...args: unknown[]) => void) | undefined;
-
-export function _setEventEmitter(emitFn: (...args: unknown[]) => void): void {
-  // called from events.js - this hoop is to avoid circular imports
-  eventEmitter = emitFn;
-}
-
-function emitEvent(...args: unknown[]): void {
-  if (eventEmitter != null) {
-    eventEmitter(...args);
-  }
-}
+// many tests stub out these methods, which does not work if we use `export from` - hence the roundabout rebinding
+export const logInfo = logging.logInfo;
+export const logWarn = logging.logWarn;
+export const logError = logging.logError;
+export const logMessage = logging.logMessage;
+export const prefixLog = logging.prefixLog;
+export const debugTurnedOn = debug.debugTurnedOn;
 
 // this allows stubbing of utility functions that are used internally by other utility functions
 export const internal = {
@@ -47,6 +38,7 @@ export const internal = {
   parseQS,
   formatQS,
   deepEqual,
+  runBackgroundTask,
 };
 
 const prebidInternal = {};
@@ -132,10 +124,10 @@ export function sizesToSizeTuples(sizes: string | number[] | number[][]) {
       .split(/\s*,\s*/)
       .map(sz => sz.match(/^(\d+)x(\d+)$/i))
       .filter(match => match)
-      .map(([_, w, h]) => [parseInt(w, 10), parseInt(h, 10)])
+      .map(([_, w, h]) => [parseInt(w, 10), parseInt(h, 10)]);
   } else if (Array.isArray(sizes)) {
     if (isValidGPTSingleSize(sizes)) {
-      return [sizes]
+      return [sizes];
     }
     return sizes.filter(isValidGPTSingleSize);
   }
@@ -152,7 +144,7 @@ export function parseSizesInput(sizeObj: string | number[] | number[][]) {
 }
 
 export function sizeTupleToSizeString(size: [number, number]): string {
-  return size[0] + 'x' + size[1]
+  return size[0] + 'x' + size[1];
 }
 
 // Parse a GPT style single size array, (i.e [300, 250])
@@ -171,7 +163,7 @@ export function sizeTupleToRtbSize(size: [number, number]) {
 // into OpenRTB-compatible (imp.banner.w/h, imp.banner.format.w/h, imp.video.w/h) object(i.e. {w:300, h:250})
 export function parseGPTSingleSizeArrayToRtbSize(singleSize: number[]) {
   if (isValidGPTSingleSize(singleSize)) {
-    return sizeTupleToRtbSize(singleSize)
+    return sizeTupleToRtbSize(singleSize);
   }
 }
 
@@ -218,82 +210,6 @@ export function getFallbackWindow(win?: Window): Window {
   return canAccessWindowTop() ? internal.getWindowTop() : internal.getWindowSelf();
 }
 
-/**
- * Wrappers to console.(log | info | warn | error). Takes N arguments, the same as the native methods
- */
-// eslint-disable-next-line no-restricted-syntax
-export function logMessage(...args: any[]) {
-  if (debugTurnedOn() && consoleLogExists) {
-    // eslint-disable-next-line no-console
-    console.log(...decorateLog(args, 'MESSAGE:'));
-  }
-}
-
-// eslint-disable-next-line no-restricted-syntax
-export function logInfo(...args: any[]) {
-  if (debugTurnedOn() && consoleInfoExists) {
-    // eslint-disable-next-line no-console
-    console.info(...decorateLog(args, 'INFO:'));
-  }
-}
-
-// eslint-disable-next-line no-restricted-syntax
-export function logWarn(...args: any[]) {
-  if (debugTurnedOn() && consoleWarnExists) {
-    // eslint-disable-next-line no-console
-    console.warn(...decorateLog(args, 'WARNING:'));
-  }
-  emitEvent(EVENTS.AUCTION_DEBUG, { type: 'WARNING', arguments: args });
-}
-
-// eslint-disable-next-line no-restricted-syntax
-export function logError(...args: any[]) {
-  if (debugTurnedOn() && consoleErrorExists) {
-    // eslint-disable-next-line no-console
-    console.error(...decorateLog(args, 'ERROR:'));
-  }
-  emitEvent(EVENTS.AUCTION_DEBUG, { type: 'ERROR', arguments: args });
-}
-
-export function prefixLog(prefix: string) {
-  function decorate(fn: (...args: any[]) => void) {
-    return function (...args: any[]) {
-      fn(prefix, ...args);
-    }
-  }
-  return {
-    logError: decorate(logError),
-    logWarn: decorate(logWarn),
-    logMessage: decorate(logMessage),
-    logInfo: decorate(logInfo),
-  }
-}
-
-function decorateLog(args: any[], prefix?: string): any[] {
-  args = [].slice.call(args);
-  const bidder = config.getCurrentBidder();
-
-  prefix && args.unshift(prefix);
-  if (bidder) {
-    args.unshift(label('#aaa'));
-  }
-  args.unshift(label('#3b88c3'));
-  args.unshift('%cPrebid' + (bidder ? `%c${bidder}` : ''));
-  return args;
-
-  function label(color: string) {
-    return `display: inline-block; color: #fff; background: ${color}; padding: 1px 4px; border-radius: 3px;`
-  }
-}
-
-export function hasConsoleLogger() {
-  return consoleLogExists;
-}
-
-export function debugTurnedOn() {
-  return !!config.getConfig('debug');
-}
-
 export const createIframe = (() => {
   const DEFAULTS = {
     border: '0px',
@@ -304,13 +220,13 @@ export const createIframe = (() => {
     scrolling: 'no',
     frameBorder: '0',
     allowtransparency: 'true'
-  }
+  };
   return (doc: Document, attrs: Record<string, any>, style: Record<string, string> = {}) => {
     const f = doc.createElement('iframe');
     Object.assign(f, Object.assign({}, DEFAULTS, attrs));
     Object.assign(f.style, style);
     return f;
-  }
+  };
 })();
 
 export function createInvisibleIframe() {
@@ -383,7 +299,7 @@ export function contains(a: any, obj: any) {
  */
 export function _map(object: any[] | Record<string, any>, callback: (value: any, key: any, obj?: any) => any) {
   if (isFn(object?.map)) return object.map(callback);
-  return Object.entries(object || {}).map(([k, v]) => callback(v, k, object))
+  return Object.entries(object || {}).map(([k, v]) => callback(v, k, object));
 }
 
 /*
@@ -440,17 +356,60 @@ export function waitForElementToLoad(element: HTMLElement, timeout?: number): Pr
 }
 
 /**
- * Inserts an image pixel with the specified `url` for cookie sync
- * @param {string} url URL string of the image pixel to load
- * @param  {function} [done] an optional exit callback, used when this usersync pixel is added during an async process
- * @param  {Number} [timeout] an optional timeout in milliseconds for the image to load before calling `done`
+ * Fires a fire-and-forget request for `url` on the background task queue (a keepalive fetch, falling
+ * back to an image pixel) for cookie sync and similar best-effort pixels.
+ * @param {string} url URL string to request
+ * @param {string} [credentials='include'] fetch credentials mode (e.g. `'include'`, `'omit'`); pass
+ *   `'omit'` for a cookieless request — the image fallback (which cannot omit cookies) is then skipped.
  */
-export function triggerPixel(url: string, done?: () => void, timeout?: number): void {
+
+export function politeTriggerPixel(url: string, credentials: RequestCredentials = 'include') {
+  const triggerSync = () => {
+    if (window.fetch && window.Request) {
+      try {
+        const request = new Request(url, {
+          method: 'GET',
+          mode: 'no-cors',
+          credentials,
+          keepalive: true
+        });
+        window.fetch(request).catch(() => { if (credentials !== 'omit') triggerPixel(url); });
+        return;
+      } catch (e) {}
+    }
+    if (credentials !== 'omit') triggerPixel(url);
+  };
+
+  runBackgroundTask(triggerSync);
+}
+
+export function politeInsertUserSyncIframe(url: string) {
+  runBackgroundTask(() => insertUserSyncIframe(url));
+}
+
+export function triggerPixel(url: string, done?: () => void, timeout?: number) {
   const img = new Image();
   if (done && internal.isFn(done)) {
     waitForElementToLoad(img, timeout).then(done);
   }
   img.src = url;
+}
+
+/**
+ * Run a task at low priority when supported by the browser, or immediately as fallback.
+ * @param {function} task
+ */
+export function runBackgroundTask(task) {
+  const scheduler = window.scheduler;
+  if (scheduler?.postTask) {
+    scheduler.postTask(task, { priority: 'background' }).catch(() => task());
+    return;
+  }
+  if (typeof window.requestIdleCallback === 'function') {
+    window.requestIdleCallback(() => task(), { timeout: 2000 });
+    return;
+  }
+  task();
 }
 
 /**
@@ -514,8 +473,8 @@ export function createTrackPixelHtml(url: string, encode: (url: string) => strin
 export function encodeMacroURI(url: string): string {
   const macros = Array.from((url as any).matchAll(/\$({[^}]+})/g) as Iterable<RegExpMatchArray>).map(match => match[1]);
   return macros.reduce((str, macro) => {
-    return str.replace('$' + encodeURIComponent(macro), '$' + macro)
-  }, encodeURI(url))
+    return str.replace('$' + encodeURIComponent(macro), '$' + macro);
+  }, encodeURI(url));
 }
 
 /**
@@ -560,7 +519,7 @@ export function getBidRequest(id: string, bidderRequests: Array<{ bids: any[] }>
     return;
   }
   return bidderRequests.flatMap(br => br.bids)
-    .find(bid => ['bidId', 'adId', 'bid_id'].some(prop => bid[prop] === id))
+    .find(bid => ['bidId', 'adId', 'bid_id'].some(prop => bid[prop] === id));
 }
 
 export function getValue(obj: Record<string, any>, key: string) {
@@ -583,7 +542,7 @@ export function isApnGetTagDefined(): boolean {
 
 export const sortByHighestCpm = (a: { cpm: number }, b: { cpm: number }): number => {
   return b.cpm - a.cpm;
-}
+};
 
 /**
  * Fisher–Yates shuffle
@@ -647,7 +606,7 @@ export function getSafeframeGeometry(): SafeFrameGeometry | undefined {
 }
 
 export function isSafariBrowser(): boolean {
-  return /^((?!chrome|android|crios|fxios).)*safari/i.test(navigator.userAgent);
+  return /^((?!chrome|chromium|android|crios|fxios).)*safari/i.test(navigator.userAgent);
 }
 
 export function isFirefoxBrowser(): boolean {
@@ -666,7 +625,7 @@ export function replaceMacros(str: string | undefined, subs: Record<string, any>
 }
 
 export function replaceAuctionPrice(str: string | undefined, cpm: number | string): string | undefined {
-  return replaceMacros(str, { AUCTION_PRICE: cpm })
+  return replaceMacros(str, { AUCTION_PRICE: cpm });
 }
 
 export function replaceClickThrough(str: string | undefined, clicktag: string): string | undefined {
@@ -753,7 +712,7 @@ export function delayExecution(func: (...args: any[]) => void, numRequiredCalls:
     if (numCalls === numRequiredCalls) {
       func.apply(this, args);
     }
-  }
+  };
 }
 
 /**
@@ -843,7 +802,7 @@ export function unsupportedBidderMessage(adUnit: { code: string; mediaTypes?: Re
  * @param obj the object to clean
  */
 export function cleanObj(obj: Record<string, any>) {
-  return Object.fromEntries(Object.entries(obj).filter(([_, v]) => typeof v !== 'undefined'))
+  return Object.fromEntries(Object.entries(obj).filter(([_, v]) => typeof v !== 'undefined'));
 }
 
 /**
@@ -1117,7 +1076,7 @@ export function memoize<T extends (...args: any[]) => any>(fn: T, key: (...args:
       cache.set(cacheKey, fn.apply(this, args));
     }
     return cache.get(cacheKey);
-  }
+  };
   memoized.clear = cache.clear.bind(cache);
   return memoized;
 }
@@ -1155,7 +1114,7 @@ export function convertObjectToArray(obj: Record<string, any>) {
  * @param {object} attributes
  */
 export function setScriptAttributes(script: HTMLScriptElement, attributes: Record<string, string>): void {
-  Object.entries(attributes).forEach(([k, v]) => script.setAttribute(k, v))
+  Object.entries(attributes).forEach(([k, v]) => script.setAttribute(k, v));
 }
 
 /**
