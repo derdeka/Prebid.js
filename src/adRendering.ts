@@ -213,14 +213,14 @@ export const getRenderingData = hook('sync', function (bidResponse: Bid, options
   };
 });
 
-function prepareBidForRendering(bidResponse: Bid, options?: RenderOptions): Bid {
+function prepareBidForRendering<T extends Bid>(bidResponse: T, options?: RenderOptions): T {
   const { ad, adUrl, cpm, originalCpm, safeRenderer } = bidResponse;
   const repl = {
     AUCTION_PRICE: originalCpm || cpm,
     CLICKTHROUGH: options?.clickUrl || ''
   };
 
-  const result = {
+  const result: T = {
     ...bidResponse,
     ad: replaceMacros(ad, repl),
     adUrl: replaceMacros(adUrl, repl)

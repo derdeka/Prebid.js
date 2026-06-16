@@ -117,7 +117,7 @@ export function transformAdServerTargetingObj(targeting: Record<string, any>) {
 /**
  * Parse a GPT-Style general size Array like `[[300, 250]]` or `"300x250,970x90"` into an array of width, height tuples `[[300, 250]]` or '[[300,250], [970,90]]'
  */
-export function sizesToSizeTuples(sizes: string | number[] | number[][]) {
+export function sizesToSizeTuples(sizes: string | number[] | number[][] | unknown) {
   if (typeof sizes === 'string') {
     // multiple sizes will be comma-separated
     return sizes
