@@ -25,25 +25,25 @@ const toString = Object.prototype.toString;
  * Return if the object is of the
  * given type.
  */
-export function isFn(object): object is AnyFunction {
+export function isFn(object: unknown): object is AnyFunction {
   return typeof object === 'function';
 }
 
-export function isStr(object): object is string {
+export function isStr(object: unknown): object is string {
   return typeof object === 'string';
 }
 
-export const isArray: (object) => object is any[] = Array.isArray.bind(Array);
+export const isArray: (object: unknown) => object is any[] = Array.isArray.bind(Array);
 
-export function isNumber(object): object is number {
+export function isNumber(object: unknown): object is number {
   return typeof object === 'number';
 }
 
-export function isPlainObject(object): object is Record<any, unknown> {
+export function isPlainObject(object: unknown): object is Record<any, unknown> {
   return toString.call(object) === '[object Object]';
 }
 
-export function isBoolean(object): object is boolean {
+export function isBoolean(object: unknown): object is boolean {
   return typeof object === 'boolean';
 }
 
@@ -51,8 +51,8 @@ export function isBoolean(object): object is boolean {
  * Checks input is integer or not
  * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/isInteger
  */
-export const isInteger: (value) => value is number = Number.isInteger.bind(Number);
+export const isInteger: (value: unknown) => value is number = Number.isInteger.bind(Number);
 
-export function isArrayOfNums<L extends number>(val, size?: L): val is Repeat<number, L> {
+export function isArrayOfNums<L extends number>(val: unknown, size?: L): val is Repeat<number, L> {
   return (isArray(val)) && ((size) ? val.length === size : true) && (val.every(v => isInteger(v)));
 }

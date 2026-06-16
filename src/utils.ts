@@ -45,21 +45,21 @@ const prebidInternal = {};
 /**
  * Returns object that is used as internal prebid namespace
  */
-export function getPrebidInternal() {
+export function getPrebidInternal(): Record<string, unknown> {
   return prebidInternal;
 }
 
 /* utility method to get incremental integer starting from 1 */
-var getIncrementalInteger = (function () {
+var getIncrementalInteger = (function (): () => number {
   var count = 0;
-  return function () {
+  return function (): number {
     count++;
     return count;
   };
 })();
 
 // generate a random string (to be used as a dynamic JSONP callback)
-export function getUniqueIdentifierStr() {
+export function getUniqueIdentifierStr(): string {
   return getIncrementalInteger() + Math.random().toString(16).substr(2);
 }
 
@@ -79,7 +79,7 @@ export function generateUUID(placeholder?: any): string {
  * Returns random data using the Crypto API if available and Math.random if not
  * Method is from https://gist.github.com/jed/982883 like generateUUID, direct link https://gist.github.com/jed/982883#gistcomment-45104
  */
-function _getRandomData() {
+function _getRandomData(): number {
   if (window && window.crypto && window.crypto.getRandomValues) {
     return window.crypto.getRandomValues(new Uint8Array(1))[0] % 16;
   } else {
@@ -87,14 +87,14 @@ function _getRandomData() {
   }
 }
 
-export function getBidIdParameter(key: string, paramsObj: Record<string, any>) {
+export function getBidIdParameter(key: string, paramsObj: Record<string, any>): string {
   return paramsObj?.[key] || '';
 }
 
 // parse a query string object passed in bid params
 // bid params should be an object such as {key: "value", key1 : "value1"}
 // aliases to formatQS
-export function parseQueryStringParameters(queryObj: Record<string, any>) {
+export function parseQueryStringParameters(queryObj: Record<string, any>): string {
   let result = '';
   for (var k in queryObj) {
     if (queryObj.hasOwnProperty(k)) { result += k + '=' + encodeURIComponent(queryObj[k]) + '&'; }
@@ -104,7 +104,7 @@ export function parseQueryStringParameters(queryObj: Record<string, any>) {
 }
 
 // transform an AdServer targeting bids into a query string to send to the adserver
-export function transformAdServerTargetingObj(targeting: Record<string, any>) {
+export function transformAdServerTargetingObj(targeting: Record<string, any>): string {
   // we expect to receive targeting for a single slot at a time
   if (targeting && Object.getOwnPropertyNames(targeting).length > 0) {
     return Object.keys(targeting)
@@ -117,7 +117,7 @@ export function transformAdServerTargetingObj(targeting: Record<string, any>) {
 /**
  * Parse a GPT-Style general size Array like `[[300, 250]]` or `"300x250,970x90"` into an array of width, height tuples `[[300, 250]]` or '[[300,250], [970,90]]'
  */
-export function sizesToSizeTuples(sizes: string | number[] | number[][] | unknown) {
+export function sizesToSizeTuples(sizes: string | number[] | number[][] | unknown): [number, number][] {
   if (typeof sizes === 'string') {
     // multiple sizes will be comma-separated
     return sizes
@@ -139,7 +139,7 @@ export function sizesToSizeTuples(sizes: string | number[] | number[][] | unknow
  * @param  {(Array.<number[]>|Array.<number>)} sizeObj Input array or double array [300,250] or [[300,250], [728,90]]
  * @return {Array.<string>}  Array of strings like `["300x250"]` or `["300x250", "728x90"]`
  */
-export function parseSizesInput(sizeObj: string | number[] | number[][]) {
+export function parseSizesInput(sizeObj: string | number[] | number[][]): string[] {
   return sizesToSizeTuples(sizeObj).map(sizeTupleToSizeString);
 }
 
@@ -149,25 +149,25 @@ export function sizeTupleToSizeString(size: [number, number]): string {
 
 // Parse a GPT style single size array, (i.e [300, 250])
 // into an AppNexus style string, (i.e. 300x250)
-export function parseGPTSingleSizeArray(singleSize: number[]) {
+export function parseGPTSingleSizeArray(singleSize: number[]): string | undefined {
   if (isValidGPTSingleSize(singleSize)) {
     return sizeTupleToSizeString(singleSize);
   }
 }
 
-export function sizeTupleToRtbSize(size: [number, number]) {
+export function sizeTupleToRtbSize(size: [number, number]): { w: number; h: number } {
   return { w: size[0], h: size[1] };
 }
 
 // Parse a GPT style single size array, (i.e [300, 250])
 // into OpenRTB-compatible (imp.banner.w/h, imp.banner.format.w/h, imp.video.w/h) object(i.e. {w:300, h:250})
-export function parseGPTSingleSizeArrayToRtbSize(singleSize: number[]) {
+export function parseGPTSingleSizeArrayToRtbSize(singleSize: number[]): { w: number; h: number } | undefined {
   if (isValidGPTSingleSize(singleSize)) {
     return sizeTupleToRtbSize(singleSize);
   }
 }
 
-function isValidGPTSingleSize(singleSize: any): singleSize is [number, number] {
+function isValidGPTSingleSize(singleSize: unknown): singleSize is [number, number] {
   // if we aren't exactly 2 items in this array, it is invalid
   return isArray(singleSize) && singleSize.length === 2 && (!isNaN(singleSize[0]) && !isNaN(singleSize[1]));
 }
@@ -229,7 +229,7 @@ export const createIframe = (() => {
   };
 })();
 
-export function createInvisibleIframe() {
+export function createInvisibleIframe(): HTMLIFrameElement {
   return createIframe(document, {
     id: getUniqueIdentifierStr(),
     width: 0,
@@ -247,7 +247,7 @@ export function createInvisibleIframe() {
  *   Check if a given parameter name exists in query string
  *   and if it does return the value
  */
-export function getParameterByName(name: string) {
+export function getParameterByName(name: string): string {
   return parseQS(getWindowLocation().search)[name] || '';
 }
 
@@ -257,12 +257,12 @@ export function getParameterByName(name: string) {
  * @param {*} object object to test
  * @return {Boolean} if object is empty
  */
-export function isEmpty(object: any) {
+export function isEmpty(object: unknown): boolean {
   if (!object) return true;
   if (isArray(object) || isStr(object)) {
-    return !(object.length > 0);
+    return !((object as { length: number }).length > 0);
   }
-  return Object.keys(object).length <= 0;
+  return Object.keys(object as Record<string, unknown>).length <= 0;
 }
 
 /**
@@ -270,7 +270,7 @@ export function isEmpty(object: any) {
  * @param str string to test
  * @returns {boolean} if string is empty
  */
-export function isEmptyStr(str: any) {
+export function isEmptyStr(str: unknown): boolean {
   return isStr(str) && (!str || str.length === 0);
 }
 
@@ -281,13 +281,13 @@ export function isEmptyStr(str: any) {
  * @param {Function} fn - The function to execute for each element. It receives three arguments: value, key, and the original object.
  * @returns {void}
  */
-export function _each(object: any[] | Record<string, any>, fn: (value: any, key: any) => void) {
+export function _each(object: any[] | Record<string, any>, fn: (value: any, key: any) => void): void {
   if (isFn(object?.forEach)) return object.forEach(fn, this);
   Object.entries(object || {}).forEach(([k, v]) => fn.call(this, v, k));
 }
 
-export function contains(a: any, obj: any) {
-  return isFn(a?.includes) && a.includes(obj);
+export function contains(a: unknown, obj: unknown): boolean {
+  return isFn((a as { includes?: unknown })?.includes) && (a as { includes: (o: unknown) => boolean }).includes(obj);
 }
 
 /**
@@ -297,7 +297,7 @@ export function contains(a: any, obj: any) {
  * @param {Function} callback - The function to execute for each element. It receives three arguments: value, key, and the original object.
  * @return {Array}
  */
-export function _map(object: any[] | Record<string, any>, callback: (value: any, key: any, obj?: any) => any) {
+export function _map(object: any[] | Record<string, any>, callback: (value: any, key: any, obj?: any) => any): any[] {
   if (isFn(object?.map)) return object.map(callback);
   return Object.entries(object || {}).map(([k, v]) => callback(v, k, object));
 }
@@ -310,7 +310,7 @@ export function _map(object: any[] | Record<string, any>, callback: (value: any,
 * @param {Boolean} [asLastChildChild]
 * @return {HTML Element}
 */
-export function insertElement(elm: Node, doc?: Document, target?: string, asLastChildChild?: boolean) {
+export function insertElement(elm: Node, doc?: Document, target?: string, asLastChildChild?: boolean): Node | undefined {
   doc = doc || document;
   let parentEl;
   if (target) {
@@ -363,7 +363,7 @@ export function waitForElementToLoad(element: HTMLElement, timeout?: number): Pr
  *   `'omit'` for a cookieless request — the image fallback (which cannot omit cookies) is then skipped.
  */
 
-export function politeTriggerPixel(url: string, credentials: RequestCredentials = 'include') {
+export function politeTriggerPixel(url: string, credentials: RequestCredentials = 'include'): void {
   const triggerSync = () => {
     if (window.fetch && window.Request) {
       try {
@@ -383,11 +383,11 @@ export function politeTriggerPixel(url: string, credentials: RequestCredentials 
   runBackgroundTask(triggerSync);
 }
 
-export function politeInsertUserSyncIframe(url: string) {
+export function politeInsertUserSyncIframe(url: string): void {
   runBackgroundTask(() => insertUserSyncIframe(url));
 }
 
-export function triggerPixel(url: string, done?: () => void, timeout?: number) {
+export function triggerPixel(url: string, done?: () => void, timeout?: number): void {
   const img = new Image();
   if (done && internal.isFn(done)) {
     waitForElementToLoad(img, timeout).then(done);
@@ -399,7 +399,7 @@ export function triggerPixel(url: string, done?: () => void, timeout?: number) {
  * Run a task at low priority when supported by the browser, or immediately as fallback.
  * @param {function} task
  */
-export function runBackgroundTask(task) {
+export function runBackgroundTask(task: () => void): void {
   const scheduler = window.scheduler;
   if (scheduler?.postTask) {
     scheduler.postTask(task, { priority: 'background' }).catch(() => task());
@@ -514,7 +514,7 @@ export function flatten<T>(a: T[], b: T | T[]) {
   return a.concat(b);
 }
 
-export function getBidRequest(id: string, bidderRequests: Array<{ bids: any[] }>) {
+export function getBidRequest(id: string, bidderRequests: Array<{ bids: any[] }>): Record<string, any> | undefined {
   if (!id) {
     return;
   }
@@ -522,11 +522,11 @@ export function getBidRequest(id: string, bidderRequests: Array<{ bids: any[] }>
     .find(bid => ['bidId', 'adId', 'bid_id'].some(prop => bid[prop] === id));
 }
 
-export function getValue(obj: Record<string, any>, key: string) {
+export function getValue(obj: Record<string, unknown>, key: string): unknown {
   return obj[key];
 }
 
-export function getBidderCodes(adUnits: Array<{ bids?: Array<{ bidder?: string }> }>) {
+export function getBidderCodes(adUnits: Array<{ bids?: Array<{ bidder?: string }> }>): string[] {
   // this could memoize adUnits
   return adUnits.map(unit => unit.bids.map(bid => bid.bidder)
     .reduce(flatten, [])).reduce(flatten, []).filter((bidder) => typeof bidder !== 'undefined').filter(uniques);
@@ -683,7 +683,7 @@ export function hasDeviceAccess(): boolean {
 /**
  * @returns {(boolean|undefined)}
  */
-export function checkCookieSupport() {
+export function checkCookieSupport(): boolean | undefined {
   // eslint-disable-next-line no-restricted-properties
   if (window.navigator.cookieEnabled || !!document.cookie.length) {
     return true;
@@ -702,12 +702,12 @@ export function checkCookieSupport() {
  * @param {number} numRequiredCalls The number of times which the returned function needs to be called before
  *   func is.
  */
-export function delayExecution(func: (...args: any[]) => void, numRequiredCalls: number) {
+export function delayExecution(func: (...args: any[]) => void, numRequiredCalls: number): (...args: any[]) => void {
   if (numRequiredCalls < 1) {
     throw new Error(`numRequiredCalls must be a positive number. Got ${numRequiredCalls}`);
   }
   let numCalls = 0;
-  return function (...args: any[]) {
+  return function (...args: any[]): void {
     numCalls++;
     if (numCalls === numRequiredCalls) {
       func.apply(this, args);
@@ -734,7 +734,7 @@ export function groupBy(xs: any[], key: string): Record<string, any[]> {
  * @param mediaTypes mediaTypes parameter to validate
  * @return If object is valid
  */
-export function isValidMediaTypes(mediaTypes: Record<string, any>) {
+export function isValidMediaTypes(mediaTypes: Record<string, any>): boolean {
   const SUPPORTED_MEDIA_TYPES = ['banner', 'native', 'video', 'audio'];
   const SUPPORTED_STREAM_TYPES = ['instream', 'outstream'];
 
@@ -758,7 +758,7 @@ export function isValidMediaTypes(mediaTypes: Record<string, any>) {
  * @param {string} bidder code
  * @return {Array} user configured param for the given bidder adunit configuration
  */
-export function getUserConfiguredParams(adUnits: Array<{ code: string; bids: Array<{ bidder: string; params?: any }> }>, adUnitCode: string, bidder: string) {
+export function getUserConfiguredParams(adUnits: Array<{ code: string; bids: Array<{ bidder: string; params?: Record<string, unknown> }> }>, adUnitCode: string, bidder: string): Record<string, unknown>[] {
   return adUnits
     .filter(adUnit => adUnit.code === adUnitCode)
     .flatMap((adUnit) => adUnit.bids)
@@ -773,7 +773,7 @@ export const compareCodeAndSlot = (slot: googletag.Slot, adUnitCode: string) => 
  * @param slot GoogleTag slot
  * @return filter function
  */
-export function isAdUnitCodeMatchingSlot(slot: googletag.Slot) {
+export function isAdUnitCodeMatchingSlot(slot: googletag.Slot): (adUnitCode: string) => boolean {
   const customGptSlotMatching = config.getConfig('customGptSlotMatching');
   const match = isFn(customGptSlotMatching) && customGptSlotMatching(slot);
   return isFn(match) ? match : (adUnitCode: string) => compareCodeAndSlot(slot, adUnitCode);
@@ -787,7 +787,7 @@ export function isAdUnitCodeMatchingSlot(slot: googletag.Slot) {
  * @param {string} bidder bidder code that is not compatible with the adUnit
  * @return {string} warning message to display when condition is met
  */
-export function unsupportedBidderMessage(adUnit: { code: string; mediaTypes?: Record<string, any> }, bidder: string) {
+export function unsupportedBidderMessage(adUnit: { code: string; mediaTypes?: Record<string, any> }, bidder: string): string {
   const mediaType = Object.keys(adUnit.mediaTypes || { 'banner': 'banner' }).join(', ');
 
   return `
@@ -801,7 +801,7 @@ export function unsupportedBidderMessage(adUnit: { code: string; mediaTypes?: Re
  * Returns a new object with undefined properties removed from given object
  * @param obj the object to clean
  */
-export function cleanObj(obj: Record<string, any>) {
+export function cleanObj(obj: Record<string, any>): Record<string, any> {
   return Object.fromEntries(Object.entries(obj).filter(([_, v]) => typeof v !== 'undefined'));
 }
 
@@ -810,7 +810,7 @@ export function cleanObj(obj: Record<string, any>) {
  * @param obj the original object
  * @param properties An array of desired properties
  */
-export function pick(obj: Record<string, any>, properties: ReadonlyArray<string | ((...args: any[]) => any)>) {
+export function pick(obj: Record<string, any>, properties: ReadonlyArray<string | ((...args: any[]) => any)>): Record<string, any> {
   if (typeof obj !== 'object') {
     return {};
   }
@@ -856,7 +856,7 @@ export function parseQS(query: string): Record<string, any> {
     }, {});
 }
 
-export function formatQS(query: Record<string, any>) {
+export function formatQS(query: Record<string, any>): string {
   return Object
     .keys(query)
     .map(k => Array.isArray(query[k])
@@ -865,7 +865,16 @@ export function formatQS(query: Record<string, any>) {
     .join('&');
 }
 
-export function parseUrl(url: string, options?: Record<string, any>) {
+export function parseUrl(url: string, options?: Record<string, any>): {
+  href: string;
+  protocol: string;
+  hostname: string;
+  port: number;
+  pathname: string;
+  search: any;
+  hash: string;
+  host: string;
+} {
   const parsed = document.createElement('a');
   if (options && 'noDecodeWholeURL' in options && options.noDecodeWholeURL) {
     parsed.href = url;
@@ -886,7 +895,7 @@ export function parseUrl(url: string, options?: Record<string, any>) {
   };
 }
 
-export function buildUrl(obj: { protocol?: string; host?: string; hostname?: string; port?: number; pathname?: string; search?: string | Record<string, any>; hash?: string }) {
+export function buildUrl(obj: { protocol?: string; host?: string; hostname?: string; port?: number; pathname?: string; search?: string | Record<string, any>; hash?: string }): string {
   return (obj.protocol || 'http') + '://' +
     (obj.host ||
       obj.hostname + (obj.port ? `:${obj.port}` : '')) +
@@ -965,7 +974,7 @@ export function mergeDeep(target: Record<string, any>, ...sources: any[]): Recor
   return target;
 }
 
-function mergeDeepHelper(target: any, source: any) {
+function mergeDeepHelper(target: any, source: any): void {
   // quick check
   if (!isPlainObject(target) || !isPlainObject(source)) {
     return;
@@ -1052,7 +1061,7 @@ export function safeJSONParse<T>(data: string): T | undefined {
   } catch (e) {}
 }
 
-export function safeJSONEncode(data: any): string {
+export function safeJSONEncode(data: unknown): string {
   try {
     return JSON.stringify(data);
   } catch (e) {
@@ -1068,9 +1077,9 @@ export function safeJSONEncode(data: any): string {
  *        By default, the first argument is used as key.
  * @return {*}
  */
-export function memoize<T extends (...args: any[]) => any>(fn: T, key: (...args: any[]) => any = (arg) => arg) {
+export function memoize<T extends (...args: any[]) => any>(fn: T, key: (...args: any[]) => any = (arg) => arg): ((...args: any[]) => ReturnType<T>) & { clear: () => void } {
   const cache = new Map();
-  const memoized = function (...args: any[]) {
+  const memoized = function (...args: any[]): ReturnType<T> {
     const cacheKey = key.apply(this, args);
     if (!cache.has(cacheKey)) {
       cache.set(cacheKey, fn.apply(this, args));
@@ -1102,7 +1111,7 @@ export function getUnixTimestampFromNow(timeValue: number = 0, timeUnit: 'm' | '
  * @param {Object} obj the object
  * @returns {Array}
  */
-export function convertObjectToArray(obj: Record<string, any>) {
+export function convertObjectToArray(obj: Record<string, any>): Array<Record<string, any>> {
   return Object.keys(obj).map(key => {
     return { [key]: obj[key] };
   });
@@ -1127,7 +1136,7 @@ export function setScriptAttributes(script: HTMLScriptElement, attributes: Recor
  *   if the element is not found, return the index of the first element that's greater;
  *   if no greater element exists, return `arr.length`)
  */
-export function binarySearch<T>(arr: T[], el: T, key: (el: T) => any = (el) => el) {
+export function binarySearch<T>(arr: T[], el: T, key: (el: T) => any = (el) => el): number {
   let left = 0;
   let right = arr.length && arr.length - 1;
   const target = key(el);
@@ -1191,7 +1200,7 @@ export function hasNonSerializableProperty(obj: Record<string, any>, checkedObje
  * @param {String} key - Key of nested property.
  * @returns {any|undefined} - Value of nested property.
  */
-export function setOnAny(collection: any[], key: string) {
+export function setOnAny(collection: any[], key: string): unknown {
   for (let i = 0, result: any; i < collection.length; i++) {
     result = deepAccess(collection[i], key);
     if (result) {
@@ -1201,7 +1210,7 @@ export function setOnAny(collection: any[], key: string) {
   return undefined;
 }
 
-export function extractDomainFromHost(pageHost: string) {
+export function extractDomainFromHost(pageHost: string): string | null {
   let domain = null;
   try {
     const domains = /[-\w]+\.([-\w]+|[-\w]{3,}|[-\w]{1,3}\.[-\w]{2})$/i.exec(pageHost);
@@ -1219,7 +1228,7 @@ export function extractDomainFromHost(pageHost: string) {
   return domain;
 }
 
-export function triggerNurlWithCpm(bid: { nurl?: string }, cpm: number | string) {
+export function triggerNurlWithCpm(bid: { nurl?: string }, cpm: number | string): void {
   if (isStr(bid.nurl) && bid.nurl !== '') {
     bid.nurl = bid.nurl.replace(
       /\${AUCTION_PRICE}/,
@@ -1231,10 +1240,10 @@ export function triggerNurlWithCpm(bid: { nurl?: string }, cpm: number | string)
 
 // To ensure that isGzipCompressionSupported() doesn’t become an overhead, we have used memoization to cache the result after the first execution.
 // This way, even if the function is called multiple times, it will only perform the actual check once and return the cached result in subsequent calls.
-export const isGzipCompressionSupported = (function () {
+export const isGzipCompressionSupported = (function (): () => boolean {
   let cachedResult: boolean | undefined;
 
-  return function () {
+  return function (): boolean {
     if (cachedResult !== undefined) {
       return cachedResult; // Return cached result if already computed
     }
@@ -1255,13 +1264,11 @@ export const isGzipCompressionSupported = (function () {
 })();
 
 // Make sure to use isGzipCompressionSupported before calling this function
-export async function compressDataWithGZip(data: any) {
-  if (typeof data !== 'string') { // TextEncoder (below) expects a string
-    data = JSON.stringify(data);
-  }
+export async function compressDataWithGZip(data: unknown): Promise<Uint8Array> {
+  const strData: string = typeof data === 'string' ? data : JSON.stringify(data);
 
   const encoder = new TextEncoder();
-  const encodedData = encoder.encode(data);
+  const encodedData = encoder.encode(strData);
   const compressedStream = new Blob([encodedData])
     .stream()
     .pipeThrough(new window.CompressionStream('gzip'));
