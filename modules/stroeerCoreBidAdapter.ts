@@ -1,27 +1,120 @@
 import { buildUrl, deepAccess, deepSetValue, generateUUID, getWinDimensions, getWindowSelf, getWindowTop, isEmpty, isStr, logWarn } from '../src/utils.js';
-import { registerBidder } from '../src/adapters/bidderFactory.js';
+import { type AdapterRequest, type BidderSpec, type ServerResponse, registerBidder } from '../src/adapters/bidderFactory.js';
+import type { BidRequest, ClientBidderRequest } from '../src/adapterManager.js';
+import type { BidResponse } from '../src/bidfactory.js';
+import type { UserSync } from '../src/userSync.js';
+import type { Size } from '../src/types/common.d.ts';
+import type { MediaType } from '../src/mediaTypes.js';
+import type { ConsentDataForKey } from '../src/consentHandler.js';
+import { CONSENT_GDPR } from '../src/consentHandler.js';
 import { BANNER, VIDEO } from '../src/mediaTypes.js';
 import { getBoundingClientRect } from '../libraries/boundingClientRect/boundingClientRect.js';
 import { getGlobal } from '../src/prebidGlobal.js';
 
 const GVL_ID = 136;
-const BIDDER_CODE = 'stroeerCore';
+const BIDDER_CODE = 'stroeerCore' as const;
 const DEFAULT_HOST = 'hb.adscale.de';
 const DEFAULT_PATH = '/dsh';
 const DEFAULT_PORT = '';
 const FIVE_MINUTES_IN_SECONDS = 300;
 const USER_SYNC_IFRAME_URL = 'https://js.adscale.de/pbsync.html';
 
-export const spec = {
+/**
+ * Bid parameters for the Stroeer Core bid adapter.
+ */
+export type StroeerCoreBidParams = {
+  /** Required. Slot ID. */
+  sid: string;
+  /** Optional. Special format parameters, passed through to the endpoint as-is. */
+  sfp?: Record<string, unknown>;
+  /** Optional. Overrides the endpoint host. Default `hb.adscale.de`. */
+  host?: string;
+  /** Optional. Overrides the endpoint port. */
+  port?: string;
+  /** Optional. Overrides the endpoint port for secure requests; takes precedence over `port`. */
+  securePort?: string;
+  /** Optional. Overrides the endpoint path. Default `/dsh`. */
+  path?: string;
+};
+
+declare module '../src/adUnits' {
+  interface BidderParams {
+    [BIDDER_CODE]: StroeerCoreBidParams;
+  }
+}
+
+type StroeerBidRequest = BidRequest<typeof BIDDER_CODE>;
+
+type StroeerFloorPrice = {
+  def?: number;
+  cur: string;
+  siz: { w: number; h: number; p: number }[];
+};
+
+type StroeerBaseBid = {
+  bid: string;
+  sid: string;
+  viz: boolean | undefined;
+  sfp: Record<string, unknown> | undefined;
+  tid: string | undefined;
+};
+
+type StroeerBannerBid = StroeerBaseBid & {
+  ban: {
+    siz: Size[];
+    fp: StroeerFloorPrice | undefined;
+  };
+};
+
+type StroeerVideoBid = StroeerBaseBid & {
+  vid: {
+    ctx: string | undefined;
+    siz: Size | undefined;
+    mim: string[] | undefined;
+    fp: StroeerFloorPrice | undefined;
+  };
+};
+
+type StroeerBasePayload = {
+  id: string;
+  ref: string | undefined;
+  mpa: boolean;
+  timeout: number;
+  url: string | undefined;
+  schain: unknown;
+  ver: { pb: string };
+  user?: { eids: unknown };
+  gdpr?: { consent: string | undefined; applies: boolean | undefined };
+};
+
+type StroeerRequestPayload = StroeerBasePayload & {
+  bids: (StroeerBannerBid | StroeerVideoBid)[];
+};
+
+type StroeerServerBid = {
+  bidId: string;
+  cpm?: number;
+  width?: number;
+  height?: number;
+  ad?: string;
+  vastXml?: string;
+  meta?: Record<string, unknown>;
+};
+
+type StroeerServerResponseBody = {
+  bids: StroeerServerBid[];
+};
+
+export const spec: BidderSpec<typeof BIDDER_CODE> = {
   code: BIDDER_CODE,
   gvlid: GVL_ID,
   supportedMediaTypes: [BANNER, VIDEO],
 
   isBidRequestValid: (function () {
-    const validators = [];
+    const validators: ((bidRequest: StroeerBidRequest) => boolean)[] = [];
 
-    const createValidator = (checkFn, msg) => {
-      return (bidRequest) => {
+    const createValidator = (checkFn: (bidRequest: StroeerBidRequest) => boolean, msg: string) => {
+      return (bidRequest: StroeerBidRequest) => {
         if (checkFn(bidRequest)) {
           return true;
         } else {
@@ -31,7 +124,7 @@ export const spec = {
       };
     };
 
-    const hasValidMediaType = bidReq => hasBanner(bidReq) || hasVideo(bidReq);
+    const hasValidMediaType = (bidReq: StroeerBidRequest) => hasBanner(bidReq) || hasVideo(bidReq);
 
     validators.push(createValidator((bidReq) => hasValidMediaType(bidReq),
       'the media type is invalid'));
@@ -40,17 +133,17 @@ export const spec = {
     validators.push(createValidator((bidReq) => isStr(bidReq.params.sid),
       'the sid field must be a string'));
 
-    return function (bidRequest) {
+    return function (bidRequest: StroeerBidRequest) {
       return validators.every(f => f(bidRequest));
     };
   }()),
 
-  buildRequests: function (validBidRequests = [], bidderRequest) {
+  buildRequests: function (validBidRequests: StroeerBidRequest[] = [], bidderRequest: ClientBidderRequest<typeof BIDDER_CODE>): AdapterRequest {
     const anyBid = bidderRequest.bids[0];
 
     const refererInfo = bidderRequest.refererInfo;
 
-    const basePayload = {
+    const basePayload: StroeerBasePayload = {
       id: generateUUID(),
       ref: refererInfo.ref,
       mpa: isMainPageAccessible(),
@@ -90,19 +183,22 @@ export const spec = {
       .filter(hasVideo)
       .map(mapToPayloadVideoBid);
 
+    const payload: StroeerRequestPayload = { ...basePayload, bids: [...bannerBids, ...videoBids] };
+
     return {
       method: 'POST',
       url: buildEndpointUrl(anyBid.params),
-      data: { ...basePayload, bids: [...bannerBids, ...videoBids] }
+      data: payload
     };
   },
 
-  interpretResponse: function (serverResponse) {
-    const bids = [];
+  interpretResponse: function (serverResponse: ServerResponse): BidResponse[] {
+    const bids: BidResponse[] = [];
 
     if (serverResponse.body && typeof serverResponse.body === 'object') {
-      serverResponse.body.bids.forEach(bidResponse => {
-        const mediaType = bidResponse.vastXml != null ? VIDEO : BANNER;
+      const body = serverResponse.body as StroeerServerResponseBody;
+      body.bids.forEach(bidResponse => {
+        const mediaType: MediaType = bidResponse.vastXml != null ? VIDEO : BANNER;
 
         const bid = {
           requestId: bidResponse.bidId,
@@ -115,12 +211,15 @@ export const spec = {
           creativeId: '',
           meta: { ...bidResponse.meta },
           mediaType,
-        };
+          // Prebid core requires desirability on bid responses (BaseBidResponse); the auction
+          // recomputes it (adjustDesirability, default = cpm), so this is only the documented default.
+          desirability: bidResponse.cpm || 0,
+        } as BidResponse;
 
         if (mediaType === VIDEO) {
-          bid.vastXml = bidResponse.vastXml;
+          (bid as any).vastXml = bidResponse.vastXml;
         } else {
-          bid.ad = bidResponse.ad;
+          (bid as any).ad = bidResponse.ad;
         }
 
         bids.push(bid);
@@ -130,7 +229,7 @@ export const spec = {
     return bids;
   },
 
-  getUserSyncs: function (syncOptions, serverResponses, gdprConsent) {
+  getUserSyncs: function (syncOptions, serverResponses, gdprConsent): UserSync[] {
     if (serverResponses.length > 0 && syncOptions.iframeEnabled) {
       return [{
         type: 'iframe',
@@ -142,7 +241,7 @@ export const spec = {
   }
 };
 
-const isMainPageAccessible = () => {
+const isMainPageAccessible = (): boolean => {
   try {
     return !!getWindowTop().location.href;
   } catch (ignore) {
@@ -150,34 +249,34 @@ const isMainPageAccessible = () => {
   }
 };
 
-const elementInView = (elementId) => {
+const elementInView = (elementId: string): boolean | undefined => {
   // TODO this should use getAdUnitElement
-  const resolveElement = (elId) => {
+  const resolveElement = (elId: string) => {
     const win = getWindowSelf();
 
     return win.document.getElementById(elId);
   };
 
-  const visibleInWindow = (el, win) => {
+  const visibleInWindow = (el: Element, win: Window): boolean => {
     const rect = getBoundingClientRect(el);
     const inView = (rect.top + rect.height >= 0) && (rect.top <= getWinDimensions().innerHeight);
 
     if (win !== win.parent) {
-      return inView && visibleInWindow(win.frameElement, win.parent);
+      return inView && visibleInWindow(win.frameElement as Element, win.parent);
     }
 
     return inView;
   };
 
   try {
-    return visibleInWindow(resolveElement(elementId), getWindowSelf());
+    return visibleInWindow(resolveElement(elementId) as Element, getWindowSelf());
   } catch (e) {
     // old browser, element not found, cross-origin etc.
   }
   return undefined;
 };
 
-const buildEndpointUrl = ({ host: hostname = DEFAULT_HOST, port = DEFAULT_PORT, securePort, path: pathname = DEFAULT_PATH }) => {
+const buildEndpointUrl = ({ host: hostname = DEFAULT_HOST, port = DEFAULT_PORT, securePort, path: pathname = DEFAULT_PATH }: StroeerCoreBidParams): string => {
   if (securePort) {
     port = securePort;
   }
@@ -185,7 +284,7 @@ const buildEndpointUrl = ({ host: hostname = DEFAULT_HOST, port = DEFAULT_PORT, 
   return buildUrl({ protocol: 'https', hostname, port, pathname });
 };
 
-const getGdprParams = gdprConsent => {
+const getGdprParams = (gdprConsent: null | ConsentDataForKey<typeof CONSENT_GDPR>): string => {
   if (gdprConsent) {
     const consentString = encodeURIComponent(gdprConsent.consentString || '');
     const isGdpr = gdprConsent.gdprApplies ? 1 : 0;
@@ -196,21 +295,24 @@ const getGdprParams = gdprConsent => {
   }
 };
 
-const hasBanner = bidReq => {
-  return (!bidReq.mediaTypes && !bidReq.mediaType) ||
+const hasBanner = (bidReq: StroeerBidRequest): boolean => {
+  // `mediaType` is a legacy, deprecated single-mediaType override; it is not part of BidRequest's
+  // declared shape, but some callers (e.g. s2s) may still set it.
+  const legacyMediaType = (bidReq as { mediaType?: MediaType }).mediaType;
+  return !!((!bidReq.mediaTypes && !legacyMediaType) ||
     (bidReq.mediaTypes && bidReq.mediaTypes.banner) ||
-    bidReq.mediaType === BANNER;
+    legacyMediaType === BANNER);
 };
 
-const hasVideo = bidReq => {
+const hasVideo = (bidReq: StroeerBidRequest): boolean => {
   const mediaTypes = bidReq.mediaTypes;
-  return mediaTypes &&
+  return !!(mediaTypes &&
     mediaTypes.video &&
-    ['instream', 'outstream'].indexOf(mediaTypes.video.context) > -1;
+    ['instream', 'outstream'].indexOf(mediaTypes.video.context) > -1);
 };
 
-const mapToPayloadBaseBid = (bidRequest) => {
-  const bid = {
+const mapToPayloadBaseBid = (bidRequest: StroeerBidRequest): StroeerBaseBid => {
+  const bid: StroeerBaseBid = {
     bid: bidRequest.bidId,
     sid: bidRequest.params.sid,
     viz: elementInView(bidRequest.adUnitCode),
@@ -221,8 +323,8 @@ const mapToPayloadBaseBid = (bidRequest) => {
   return bid;
 };
 
-const mapToPayloadBannerBid = (bidRequest) => {
-  const sizes = deepAccess(bidRequest, 'mediaTypes.banner.sizes') || [];
+const mapToPayloadBannerBid = (bidRequest: StroeerBidRequest): StroeerBannerBid => {
+  const sizes: Size[] = deepAccess(bidRequest, 'mediaTypes.banner.sizes') || [];
   return ({
     ban: {
       siz: sizes,
@@ -232,7 +334,7 @@ const mapToPayloadBannerBid = (bidRequest) => {
   });
 };
 
-const mapToPayloadVideoBid = (bidRequest) => {
+const mapToPayloadVideoBid = (bidRequest: StroeerBidRequest): StroeerVideoBid => {
   const video = deepAccess(bidRequest, 'mediaTypes.video') || {};
   return {
     vid: {
@@ -245,7 +347,7 @@ const mapToPayloadVideoBid = (bidRequest) => {
   };
 };
 
-const createFloorPriceObject = (mediaType, sizes, bidRequest) => {
+const createFloorPriceObject = (mediaType: MediaType, sizes: Size[], bidRequest: StroeerBidRequest): StroeerFloorPrice | undefined => {
   if (!bidRequest.getFloor) {
     return undefined;
   }
@@ -288,7 +390,7 @@ const createFloorPriceObject = (mediaType, sizes, bidRequest) => {
   };
 };
 
-const copyDeepPaths = (target, source, paths, targetPrefix = '') => {
+const copyDeepPaths = (target: object, source: object, paths: string[], targetPrefix = ''): void => {
   paths.forEach(path => {
     const value = deepAccess(source, path);
     if (value !== undefined) {
