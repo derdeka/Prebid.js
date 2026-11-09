@@ -1,3 +1,4 @@
+import type { Bid } from '../bidfactory.ts';
 import { DEFAULT_PRIORITY, PRIORITY_INCREMENT } from './desirability.js';
 
 export type Compare<T> = (a: T, b: T) => number;
@@ -33,11 +34,11 @@ export function maximum<T>(compare: Compare<T> = simpleCompare): (min: T, item: 
   return minimum(reverseCompare(compare));
 }
 
-const cpmCompare = keyCompare<any>((bid) => bid.cpm);
-const timestampCompare = keyCompare<any>((bid) => bid.responseTimestamp);
+const cpmCompare = keyCompare<Bid>((bid) => bid.cpm);
+const timestampCompare = keyCompare<Bid>((bid) => bid.responseTimestamp);
 
 // This function will get highest cpm value bid, in case of tie it will return the bid with lowest timeToRespond
-export const getHighestCpm = maximum(tiebreakCompare(cpmCompare, reverseCompare(keyCompare<any>((bid) => bid.timeToRespond))));
+export const getHighestCpm = maximum(tiebreakCompare(cpmCompare, reverseCompare(keyCompare<Bid>((bid) => bid.timeToRespond))));
 
 export function priorityCompare(left: any, right: any): number {
   const a = left.priority ?? DEFAULT_PRIORITY;
@@ -56,7 +57,7 @@ export function dealsFirst(a: any, b: any): number {
   return 0;
 }
 
-export const bidDesirabilityCompare = tiebreakCompare<any>(priorityCompare, keyCompare<any>((bid) => bid.desirability ?? bid.cpm));
+export const bidDesirabilityCompare = tiebreakCompare<Bid>(priorityCompare, keyCompare<Bid>((bid) => bid.desirability ?? bid.cpm));
 
 // Sort comparator that orders bids by `.desirability` (falling back to cpm), highest first.
 export const highestDesirabilityFirst = reverseCompare(bidDesirabilityCompare);
@@ -64,7 +65,7 @@ export const highestDesirabilityFirst = reverseCompare(bidDesirabilityCompare);
 // This function will get highest bid by `.desirability` (publisher `bidDesirabilityAdjustment` when set, else mirrors cpm via `adjustBids`);
 // ties use lowest `timeToRespond`, matching {@link getHighestCpm}.
 export const getHighestDesirability = maximum(
-  tiebreakCompare<any>(bidDesirabilityCompare, reverseCompare(keyCompare<any>((bid) => bid.timeToRespond)))
+  tiebreakCompare<Bid>(bidDesirabilityCompare, reverseCompare(keyCompare<Bid>((bid) => bid.timeToRespond)))
 );
 
 // This function will get the oldest highest cpm value bid, in case of tie it will return the bid which came in first

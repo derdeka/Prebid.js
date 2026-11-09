@@ -3,6 +3,7 @@
  * @module modules/multibid
  */
 
+import type { Bid } from '../../src/bidfactory.ts';
 import { config } from '../../src/config.js';
 import { getHook, setupBeforeHookFnOnce } from '../../src/hook.js';
 import { deepAccess, deepSetValue, getUniqueIdentifierStr, groupBy, logWarn } from '../../src/utils.js';
@@ -210,7 +211,7 @@ export function aliasedBiddersFirst(a, b) {
  * @param {Number} adUnitBidLimit bidder targeting limit, default set to 0
  * @param {Boolean} hasModified default set to false, this hook modifies targeting and sets to true
  */
-export function targetBidPoolHook(fn, bidsReceived, winReducer, adUnitBidLimit = 0, hasModified = false, winSorter = highestDesirabilityFirst) {
+export function targetBidPoolHook(fn, bidsReceived: Bid[], winReducer, adUnitBidLimit = 0, hasModified = false, winSorter = highestDesirabilityFirst) {
   if (!config.getConfig('multibid')) resetMultiConfig();
   if (hasMultibid) {
     const modifiedBids = [];

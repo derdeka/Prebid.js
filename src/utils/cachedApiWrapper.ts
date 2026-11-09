@@ -5,8 +5,8 @@ export type CachedApiProps = { [key: string]: boolean | CachedApiProps };
  * read through to the target once, and serve the cached value until `reset()` is called.
  */
 export function CachedApiWrapper<T = any>(this: { obj: T; reset: () => void }, getTarget: () => any, props: CachedApiProps) {
-  const wrapper: Record<string, any> = {};
-  let data: Record<string, any> = {};
+  const wrapper: Record<string, unknown> = {};
+  let data: Record<string, unknown> = {};
   const children: Array<() => void> = [];
   Object.entries(props).forEach(([key, value]) => {
     if (value != null && typeof value === 'object') {

@@ -138,7 +138,7 @@ const converter = ortbConverter({
         copyOptProperty(bidRequest.params?.maxduration, videoData, 'maxduration');
         copyOptProperty(bidRequest.params?.protocols, videoData, 'protocols');
         copyOptProperty(bidRequest.params?.api, videoData, 'api');
-        imp.video = mergeDeep(videoData, imp.video) as any;
+        imp.video = mergeDeep(videoData, imp.video);
         fillVideoImp(imp, bidRequest, context);
       }
     },

@@ -68,9 +68,9 @@ export function getUniqueIdentifierStr(): string {
  * and y is replaced with a random hexadecimal digit from 8 to b.
  * https://gist.github.com/jed/982883 via node-uuid
  */
-export function generateUUID(placeholder?: any): string {
+export function generateUUID(placeholder?: number | string): string {
   return placeholder
-    ? (placeholder ^ _getRandomData() >> placeholder / 4).toString(16)
+    ? (Number(placeholder) ^ _getRandomData() >> Number(placeholder) / 4).toString(16)
     : ('' + [1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, generateUUID);
 }
 
@@ -282,7 +282,7 @@ export function isEmptyStr(str: unknown): boolean {
  * @param {Function} fn - The function to execute for each element. It receives three arguments: value, key, and the original object.
  * @returns {void}
  */
-export function _each(object: any[] | Record<string, any>, fn: (value: any, key: any) => void): void {
+export function _each<T>(object: T[] | Record<string, T>, fn: (value: T, key: any) => void): void {
   if (isFn(object?.forEach)) return object.forEach(fn, this);
   Object.entries(object || {}).forEach(([k, v]) => fn.call(this, v, k));
 }
@@ -298,7 +298,7 @@ export function contains(a: unknown, obj: unknown): boolean {
  * @param {Function} callback - The function to execute for each element. It receives three arguments: value, key, and the original object.
  * @return {Array}
  */
-export function _map(object: any[] | Record<string, any>, callback: (value: any, key: any, obj?: any) => any): any[] {
+export function _map<T, R>(object: T[] | Record<string, T>, callback: (value: T, key: any, obj?: T[] | Record<string, T>) => R): R[] {
   if (isFn(object?.map)) return object.map(callback);
   return Object.entries(object || {}).map(([k, v]) => callback(v, k, object));
 }
@@ -687,12 +687,12 @@ export function checkCookieSupport(): boolean | undefined {
  * @param {number} numRequiredCalls The number of times which the returned function needs to be called before
  *   func is.
  */
-export function delayExecution(func: (...args: any[]) => void, numRequiredCalls: number): (...args: any[]) => void {
+export function delayExecution<A extends unknown[]>(func: (...args: A) => void, numRequiredCalls: number): (...args: A) => void {
   if (numRequiredCalls < 1) {
     throw new Error(`numRequiredCalls must be a positive number. Got ${numRequiredCalls}`);
   }
   let numCalls = 0;
-  return function (...args: any[]): void {
+  return function (this: unknown, ...args: A): void {
     numCalls++;
     if (numCalls === numRequiredCalls) {
       func.apply(this, args);
@@ -706,9 +706,9 @@ export function delayExecution(func: (...args: any[]) => void, numRequiredCalls:
  * @param {string} key
  * @returns {Object} {${key_value}: ${groupByArray}, key_value: {groupByArray}}
  */
-export function groupBy(xs: any[], key: string): Record<string, any[]> {
-  return xs.reduce(function(rv: Record<string, any[]>, x) {
-    const k = String(x[key]);
+export function groupBy<T>(xs: T[], key: string): Record<string, T[]> {
+  return xs.reduce(function(rv: Record<string, T[]>, x) {
+    const k = String((x as Record<string, unknown>)[key]);
     (rv[k] = rv[k] || []).push(x);
     return rv;
   }, {});
@@ -1126,7 +1126,7 @@ export function setScriptAttributes(script: HTMLScriptElement, attributes: Recor
  *   if the element is not found, return the index of the first element that's greater;
  *   if no greater element exists, return `arr.length`)
  */
-export function binarySearch<T>(arr: T[], el: T, key: (el: T) => any = (el) => el): number {
+export function binarySearch<T>(arr: T[], el: T, key: (el: T) => unknown = (el) => el): number {
   let left = 0;
   let right = arr.length && arr.length - 1;
   const target = key(el);
@@ -1152,7 +1152,7 @@ export function binarySearch<T>(arr: T[], el: T, key: (el: T) => any = (el) => e
  * @param {Set} checkedObjects - A set of properties that have already been checked.
  * @returns {boolean} - Returns true if the object has non-serializable properties, false otherwise.
  */
-export function hasNonSerializableProperty(obj: Record<string, any>, checkedObjects: Set<any> = new Set()): boolean {
+export function hasNonSerializableProperty(obj: Record<string, any>, checkedObjects: Set<unknown> = new Set()): boolean {
   for (const key in obj) {
     const value = obj[key];
     const type = typeof value;
@@ -1190,8 +1190,8 @@ export function hasNonSerializableProperty(obj: Record<string, any>, checkedObje
  * @param {String} key - Key of nested property.
  * @returns {any|undefined} - Value of nested property.
  */
-export function setOnAny(collection: any[], key: string): unknown {
-  for (let i = 0, result: any; i < collection.length; i++) {
+export function setOnAny(collection: unknown[], key: string): unknown {
+  for (let i = 0, result: unknown; i < collection.length; i++) {
     result = deepAccess(collection[i], key);
     if (result) {
       return result;
