@@ -1,4 +1,5 @@
-export {};
+import type { SafeFrameGeometry } from '../../utils.ts';
+
 declare global {
   interface Window {
     $sf?: SafeFrameAPI;
@@ -32,33 +33,5 @@ declare global {
     status(): string;
 
     supports(feature: string): boolean;
-  }
-
-  interface SafeFrameGeometry {
-    self?: {
-      x: number;
-      y: number;
-      w: number;
-      h: number;
-    };
-
-    exp?: {
-      t: number;
-      b: number;
-      l: number;
-      r: number;
-    };
-
-    win?: {
-      w: number;
-      h: number;
-    };
-
-    view?: {
-      x: number;
-      y: number;
-      w: number;
-      h: number;
-    };
   }
 }

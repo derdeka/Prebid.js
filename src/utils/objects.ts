@@ -39,7 +39,7 @@ export function isNumber(object: unknown): object is number {
   return typeof object === 'number';
 }
 
-export function isPlainObject(object: unknown): object is Record<any, unknown> {
+export function isPlainObject(object: unknown): object is Record<any, any> {
   return toString.call(object) === '[object Object]';
 }
 

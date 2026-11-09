@@ -1,12 +1,12 @@
 import { config } from './config.js';
 
 import { PbPromise } from './utils/promise.js';
-import deepAccess from 'dlv/index.js';
+import dlv from 'dlv/index.js';
 import { isArray, isFn, isPlainObject, isStr } from './utils/objects.js';
 import * as logging from './utils/logging.js';
 import * as debug from './utils/debug.js';
 
-export { deepAccess };
+export const deepAccess: (obj: any, path: string | ReadonlyArray<string | number>, def?: any) => any = dlv;
 export { dset as deepSetValue } from 'dset';
 export * from './utils/objects.js';
 export { getWinDimensions, resetWinDimensions, getScreenOrientation } from './utils/winDimensions.js';
@@ -566,6 +566,16 @@ export function isSafeFrameWindow(): boolean {
 }
 
 /**
+ * Geometry of a SafeFrame container, as returned by `$sf.ext.geom()`.
+ */
+export interface SafeFrameGeometry {
+  self?: { x: number; y: number; w: number; h: number };
+  exp?: { t: number; b: number; l: number; r: number };
+  win?: { w: number; h: number };
+  view?: { x: number; y: number; w: number; h: number };
+}
+
+/**
  * Returns the result of calling the function $sf.ext.geom() if it exists
  * @see https://iabtechlab.com/wp-content/uploads/2016/03/SafeFrames_v1.1_final.pdf — 5.4 Function $sf.ext.geom
  * @returns {Object | undefined} geometric information about the container
@@ -938,7 +948,7 @@ export function deepEqual(obj1: any, obj2: any, { checkTypes = false } = {}): bo
   return true;
 }
 
-export function mergeDeep(target: Record<string, any>, ...sources: any[]): Record<string, any> {
+export function mergeDeep(target: Record<string, any>, ...sources: any[]): any {
   for (let i = 0; i < sources.length; i++) {
     const source = sources[i];
     if (!isPlainObject(source)) {
@@ -1052,19 +1062,18 @@ export function safeJSONEncode(data: unknown): string {
  *        By default, the first argument is used as key.
  * @return {*}
  */
-export function memoize<T extends (...args: any[]) => any>(fn: T, key: (...args: any[]) => any = (arg) => arg): ((...args: any[]) => ReturnType<T>) & { clear: () => void } {
+export function memoize<T extends (...args: any[]) => any>(fn: T, key: (...args: any[]) => any = (arg) => arg): ((...args: Parameters<T>) => ReturnType<T>) & { clear: () => void; invalidate: (...args: any[]) => void } {
   const cache = new Map();
-  const memoized = function (...args: any[]): ReturnType<T> {
+  const memoized = function (this: unknown, ...args: Parameters<T>): ReturnType<T> {
     const cacheKey = key.apply(this, args);
     if (!cache.has(cacheKey)) {
       cache.set(cacheKey, fn.apply(this, args));
     }
     return cache.get(cacheKey);
-  };
+  } as ((...args: Parameters<T>) => ReturnType<T>) & { clear: () => void; invalidate: (...args: any[]) => void };
   memoized.clear = cache.clear.bind(cache);
-  memoized.invalidate = function () {
-    // eslint-disable-next-line prefer-rest-params
-    cache.delete(key.apply(this, arguments));
+  memoized.invalidate = function (this: unknown, ...args: any[]) {
+    cache.delete(key.apply(this, args));
   };
   return memoized;
 }

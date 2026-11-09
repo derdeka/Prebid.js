@@ -1,4 +1,4 @@
-export function scrubIPv4(ip) {
+export function scrubIPv4(ip?: string | null): string | null {
   if (!ip) {
     return null;
   }
@@ -11,7 +11,7 @@ export function scrubIPv4(ip) {
     return null;
   }
 
-  const mask = [];
+  const mask: number[] = [];
   for (let i = 0; i < 4; i++) {
     const n = Math.max(0, Math.min(8, ones - (i * 8)));
     mask.push((0xff << (8 - n)) & 0xff);
@@ -22,7 +22,7 @@ export function scrubIPv4(ip) {
   return maskedIP.join('.');
 }
 
-export function scrubIPv6(ip) {
+export function scrubIPv6(ip?: string | null): string | null {
   if (!ip) {
     return null;
   }
@@ -40,7 +40,7 @@ export function scrubIPv6(ip) {
     return null;
   }
 
-  const mask = [];
+  const mask: number[] = [];
   for (let i = 0; i < 8; i++) {
     const n = Math.max(0, Math.min(16, ones - (i * 16)));
     mask.push((0xffff << (16 - n)) & 0xffff);

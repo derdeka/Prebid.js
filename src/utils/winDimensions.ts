@@ -2,7 +2,20 @@ import { canAccessWindowTop, internal as utilsInternals } from '../utils.js';
 import { CachedApiWrapper } from './cachedApiWrapper.js';
 import { endLayoutEpoch, onLayoutEpochEnd, startLayoutEpoch } from './layoutEpoch.js';
 
-const winDimensions = new CachedApiWrapper(
+export type WinDimensions = {
+  innerHeight: number;
+  innerWidth: number;
+  scrollX: number;
+  scrollY: number;
+  screen: { width: number; height: number };
+  visualViewport: { width: number; height: number };
+  document: {
+    documentElement: { clientWidth: number; clientHeight: number; scrollTop: number; scrollLeft: number };
+    body: { scrollTop: number; scrollLeft: number; clientWidth: number; clientHeight: number };
+  };
+};
+
+const winDimensions: { obj: WinDimensions; reset: () => void } = new (CachedApiWrapper as any)(
   () => {
     // called for every value read into the cache, including through an object obtained from
     // getWinDimensions() in an earlier epoch, so that each value is discarded when the epoch it was read in ends
@@ -48,9 +61,9 @@ onLayoutEpochEnd(() => internal.winDimensions.reset());
 /**
  * Dimensions and scroll offsets of the top window (or of this window, if the top one is not accessible).
  * Values are cached for the current layout epoch, together with element rects from the
- * `boundingClientRect` library, so the two can be combined; see `layoutEpoch.js`.
+ * `boundingClientRect` library, so the two can be combined; see `layoutEpoch.ts`.
  */
-export function getWinDimensions() {
+export function getWinDimensions(): WinDimensions {
   return internal.winDimensions.obj;
 }
 
@@ -58,7 +71,7 @@ export function resetWinDimensions() {
   endLayoutEpoch();
 }
 
-export function getScreenOrientation(win) {
+export function getScreenOrientation(win?: Window): 'portrait' | 'landscape' | undefined {
   const fallbackWin = win ?? (canAccessWindowTop() ? utilsInternals.getWindowTop() : utilsInternals.getWindowSelf());
   const screenData = fallbackWin?.screen ?? utilsInternals.getWindowSelf()?.screen ?? window?.screen;
   const width = Number(screenData?.width);
