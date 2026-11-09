@@ -25,26 +25,26 @@ const toString = Object.prototype.toString;
  * Return if the object is of the
  * given type.
  */
-export function isFn(object: unknown): object is AnyFunction {
-  return typeof object === 'function';
+export function isFn(value: unknown): value is AnyFunction {
+  return typeof value === 'function';
 }
 
-export function isStr(object: unknown): object is string {
-  return typeof object === 'string';
+export function isStr(value: unknown): value is string {
+  return typeof value === 'string';
 }
 
-export const isArray: (object: unknown) => object is any[] = Array.isArray.bind(Array);
+export const isArray: (value: unknown) => value is any[] = Array.isArray.bind(Array);
 
-export function isNumber(object: unknown): object is number {
-  return typeof object === 'number';
+export function isNumber(value: unknown): value is number {
+  return typeof value === 'number';
 }
 
-export function isPlainObject(object: unknown): object is Record<any, any> {
-  return toString.call(object) === '[object Object]';
+export function isPlainObject(value: unknown): value is Record<any, any> {
+  return toString.call(value) === '[object Object]';
 }
 
-export function isBoolean(object: unknown): object is boolean {
-  return typeof object === 'boolean';
+export function isBoolean(value: unknown): value is boolean {
+  return typeof value === 'boolean';
 }
 
 /**
