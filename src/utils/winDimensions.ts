@@ -15,7 +15,7 @@ export type WinDimensions = {
   };
 };
 
-const winDimensions: { obj: WinDimensions; reset: () => void } = new (CachedApiWrapper as any)(
+const winDimensions = new CachedApiWrapper<Window, WinDimensions>(
   () => {
     // called for every value read into the cache, including through an object obtained from
     // getWinDimensions() in an earlier epoch, so that each value is discarded when the epoch it was read in ends
