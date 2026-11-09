@@ -44,7 +44,7 @@ type AsterioServerBid = {
   format?: string;
   adomain?: string[];
   vastXml?: string;
-  native?: Record<string, any>;
+  native?: AsterioNativeBid;
   meta?: Record<string, any>;
 };
 
