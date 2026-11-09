@@ -1,6 +1,6 @@
-let outOfFocusStart = null; // enforce null otherwise it could be undefined and the callback wouldn't execute
+let outOfFocusStart: number | null = null; // enforce null otherwise it could be undefined and the callback wouldn't execute
 let timeOutOfFocus = 0;
-let suspendedTimeouts = [];
+let suspendedTimeouts: Array<{ callback: () => void; startTime: number; setTimerId: (id: ReturnType<typeof setTimeout>) => void }> = [];
 
 function trackTimeOutOfFocus() {
   if (document.hidden) {
@@ -15,7 +15,7 @@ function trackTimeOutOfFocus() {
 
 document.addEventListener('visibilitychange', trackTimeOutOfFocus);
 
-export function reset() {
+export function reset(): void {
   outOfFocusStart = null;
   timeOutOfFocus = 0;
   suspendedTimeouts = [];
@@ -30,7 +30,7 @@ export function reset() {
  * @param {number} [milliseconds] - Minimum duration (in milliseconds) that the callback will be executed after
  * @returns {function(): number} - Getter function for current timer id
  */
-export function setFocusTimeout(callback, milliseconds) {
+export function setFocusTimeout(callback: () => void, milliseconds?: number): () => ReturnType<typeof setTimeout> {
   const startTime = timeOutOfFocus;
   let timerId = setTimeout(() => {
     if (timeOutOfFocus === startTime && outOfFocusStart == null) {

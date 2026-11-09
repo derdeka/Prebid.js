@@ -8,6 +8,7 @@ import {
 import { ajax } from '../src/ajax.js';
 import { AUDIO, BANNER, NATIVE, VIDEO } from '../src/mediaTypes.js';
 import { isPlainObject, logWarn } from '../src/utils.js';
+import type { ORTBResponse } from '../src/prebid.public.js';
 
 /**
  * Adspiro bid parameters.
@@ -106,7 +107,7 @@ export const spec: BidderSpec<typeof BIDDER_CODE> = {
     if (!isPlainObject(serverResponse?.body)) {
       return [];
     }
-    const { bids } = converter.fromORTB({ request: request.data, response: serverResponse.body }) as ExtendedResponse;
+    const { bids } = converter.fromORTB({ request: request.data, response: serverResponse.body as ORTBResponse }) as ExtendedResponse;
     return bids;
   },
 

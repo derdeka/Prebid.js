@@ -7,14 +7,14 @@ import { logError } from '../utils.js';
  * precedence as publisher settings: `getOwn(bidderCode)` wins, otherwise adapter vs bidder depending on
  * `adjustAlternateBids` on the adapter scope.
  */
-export function getBidAdjustmentFn(bid, bs, key, bidRequest) {
+export function getBidAdjustmentFn(bid: any, bs: any, key: string, bidRequest?: any): any {
   const adapterCode = bid?.adapterCode;
   const bidderCode = bid?.bidderCode || bidRequest?.bidder;
   const adjustAlternateBids = bs.get(bid?.adapterCode, 'adjustAlternateBids');
   return bs.getOwn(bidderCode, key) || bs.get(adjustAlternateBids ? adapterCode : bidderCode, key);
 }
 
-export function adjustCpm(cpm, bidResponse, bidRequest, { index = auctionManager.index, bs = bidderSettings } = {}) {
+export function adjustCpm(cpm: number, bidResponse: any, bidRequest?: any, { index = auctionManager.index, bs = bidderSettings }: { index?: any; bs?: any } = {}): number {
   bidRequest = bidRequest || index.getBidRequest(bidResponse);
   const bidCpmAdjustment = getBidAdjustmentFn(bidResponse, bs, 'bidCpmAdjustment', bidRequest);
   if (bidCpmAdjustment && typeof bidCpmAdjustment === 'function') {

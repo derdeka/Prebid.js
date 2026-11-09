@@ -25,35 +25,35 @@ const toString = Object.prototype.toString;
  * Return if the object is of the
  * given type.
  */
-export function isFn(object): object is AnyFunction {
-  return typeof object === 'function';
+export function isFn(value: unknown): value is AnyFunction {
+  return typeof value === 'function';
 }
 
-export function isStr(object): object is string {
-  return typeof object === 'string';
+export function isStr(value: unknown): value is string {
+  return typeof value === 'string';
 }
 
-export const isArray: (object) => object is any[] = Array.isArray.bind(Array);
+export const isArray: (value: unknown) => value is any[] = Array.isArray.bind(Array);
 
-export function isNumber(object): object is number {
-  return typeof object === 'number';
+export function isNumber(value: unknown): value is number {
+  return typeof value === 'number';
 }
 
-export function isPlainObject(object): object is Record<any, unknown> {
-  return toString.call(object) === '[object Object]';
+export function isPlainObject(value: unknown): value is Record<any, any> {
+  return toString.call(value) === '[object Object]';
 }
 
-export function isBoolean(object): object is boolean {
-  return typeof object === 'boolean';
+export function isBoolean(value: unknown): value is boolean {
+  return typeof value === 'boolean';
 }
 
 /**
  * Checks input is integer or not
  * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Number/isInteger
  */
-export const isInteger: (value) => value is number = Number.isInteger.bind(Number);
+export const isInteger: (value: unknown) => value is number = Number.isInteger.bind(Number);
 
-export function isArrayOfNums<L extends number>(val, size?: L): val is Repeat<number, L> {
+export function isArrayOfNums<L extends number>(val: unknown, size?: L): val is Repeat<number, L> {
   // Array.from because every() skips holes in sparse arrays
   return (isArray(val)) && ((size) ? val.length === size : true) && (Array.from(val).every(v => isInteger(v)));
 }
@@ -62,7 +62,7 @@ export function isArrayOfNums<L extends number>(val, size?: L): val is Repeat<nu
  * Normalize a single size `[w, h]` or an array of sizes `[[w, h], ...]` into an array of sizes.
  * Returns an empty array if the input is invalid, or (when `targLength` is given) does not have exactly that many elements.
  */
-export function validateSizes(sizes, targLength?: number): Size[] {
+export function validateSizes(sizes: unknown, targLength?: number): Size[] {
   if (isArray(sizes) && ((targLength) ? sizes.length === targLength : sizes.length > 0)) {
     // Array.from because every() skips holes in sparse arrays
     if (Array.from(sizes).every(sz => isArrayOfNums(sz, 2))) {

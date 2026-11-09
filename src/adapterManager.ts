@@ -80,7 +80,7 @@ export const PBS_ADAPTER_NAME = 'pbsBidAdapter';
 export const PARTITIONS = {
   CLIENT: 'client',
   SERVER: 'server'
-};
+} as const;
 
 export const dep = {
   isAllowed: isActivityAllowed,
@@ -440,7 +440,7 @@ export function getS2SBidderSet(s2sConfigs) {
  * @returns {Object} return.client - Array of bidder codes that should be routed to client adapters.
  * @returns {Object} return.server - Array of bidder codes that should be routed to server adapters.
  */
-export function _partitionBidders (adUnits, s2sConfigs, { getS2SBidders = getS2SBidderSet } = {}) {
+export function _partitionBidders (adUnits, s2sConfigs, { getS2SBidders = getS2SBidderSet } = {}): { [PARTITIONS.CLIENT]: string[], [PARTITIONS.SERVER]: string[] } {
   const serverBidders = getS2SBidders(s2sConfigs);
   return getBidderCodes(adUnits).reduce((memo, bidder) => {
     const partition = serverBidders.has(bidder) ? PARTITIONS.SERVER : PARTITIONS.CLIENT;

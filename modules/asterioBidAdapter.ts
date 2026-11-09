@@ -43,6 +43,9 @@ type AsterioServerBid = {
   mediaType?: string;
   format?: string;
   adomain?: string[];
+  vastXml?: string;
+  native?: AsterioNativeBid;
+  meta?: Record<string, any>;
 };
 
 type AsterioNativeImage = {
