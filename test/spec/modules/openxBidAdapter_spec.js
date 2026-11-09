@@ -487,6 +487,11 @@ describe('OpenxRtbAdapter', function () {
         expect(request[0].data.ext.pv).to.equal(version);
       });
 
+      it('should always request gzip compression of the request body', function () {
+        const request = spec.buildRequests(bidRequestsWithMediaTypes, mockBidderRequest);
+        expect(request[0].options).to.deep.equal({ endpointCompression: true });
+      });
+
       it('should send delivery domain, if available', function () {
         const request = spec.buildRequests(bidRequestsWithMediaTypes, mockBidderRequest);
         expect(request[0].data.ext.delDomain).to.equal(bidRequestsWithMediaTypes[0].params.delDomain);
@@ -1070,7 +1075,6 @@ describe('OpenxRtbAdapter', function () {
       context('supply chain (schain)', function () {
         let bidRequests;
         let schainConfig;
-        const supplyChainNodePropertyOrder = ['asi', 'sid', 'hp', 'rid', 'name', 'domain'];
 
         beforeEach(function () {
           schainConfig = {
@@ -1971,7 +1975,7 @@ describe('OpenxRtbAdapter', function () {
 
     describe('when gdpr applies', function () {
       let gdprConsent;
-      let gdprPixelUrl;
+
       const consentString = 'gdpr-pixel-consent';
       const gdprApplies = '1';
       beforeEach(() => {
@@ -1979,8 +1983,6 @@ describe('OpenxRtbAdapter', function () {
           consentString,
           gdprApplies: true
         };
-
-        gdprPixelUrl = `${SYNC_URL}&gdpr=${gdprApplies}&gdpr_consent=${consentString}`;
       });
 
       it('when there is a response, it should have the gdpr query params', () => {
@@ -2106,11 +2108,10 @@ describe('OpenxRtbAdapter', function () {
 
     describe('when ccpa applies', function () {
       let usPrivacyConsent;
-      let uspPixelUrl;
+
       const privacyString = 'TEST';
       beforeEach(() => {
         usPrivacyConsent = 'TEST';
-        uspPixelUrl = `${DEFAULT_SYNC}&us_privacy=${privacyString}`;
       });
       it('should send the us privacy string, ', () => {
         const [{ url }] = spec.getUserSyncs(

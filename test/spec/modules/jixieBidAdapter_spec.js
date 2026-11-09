@@ -241,9 +241,7 @@ describe('jixie Adapter', function () {
       // what will be in there. so we do not check here (using expect)
       // The next next below we check
       const request = spec.buildRequests(bidRequests_, bidderRequest_);
-      it('sends bid request to ENDPOINT via POST', function () {
-        expect(request.method).to.equal('POST');
-      });
+      expect(request.method).to.equal('POST');
       expect(request.data).to.be.an('string');
       const payload = JSON.parse(request.data);
       expect(payload).to.have.property('timeout', timeout_);
@@ -305,9 +303,7 @@ describe('jixie Adapter', function () {
 
       // actual api call:
       const request = spec.buildRequests(bidRequests_, bidderRequest_);
-      it('sends bid request to ENDPOINT via POST', function () {
-        expect(request.method).to.equal('POST');
-      });
+      expect(request.method).to.equal('POST');
 
       expect(request.data).to.be.an('string');
       const payload = JSON.parse(request.data);
@@ -404,7 +400,7 @@ describe('jixie Adapter', function () {
 
     it('it should populate the floor info when available', function () {
       const oneSpecialBidReq = deepClone(bidRequests_[0]);
-      let request; let payload = null;
+      let request; let payload;
       // 1 floor is not set
       request = spec.buildRequests([oneSpecialBidReq], bidderRequest_);
       payload = JSON.parse(request.data);

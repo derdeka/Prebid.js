@@ -2,11 +2,11 @@
 import { deepAccess, parseSizesInput, isArray, getWindowTop, deepSetValue, triggerPixel, getWindowSelf, isPlainObject } from '../src/utils.js';
 import { registerBidder } from '../src/adapters/bidderFactory.js';
 import { BANNER, VIDEO } from '../src/mediaTypes.js';
-import { config } from '../src/config.js';
 import { percentInView } from '../libraries/percentInView/percentInView.js';
 import { getMinSize } from '../libraries/sizeUtils/sizeUtils.js';
 import { getAdUnitElement } from '../src/utils/adUnits.js';
 import { getDNT } from '../libraries/dnt/index.js';
+import { coppaDataHandler } from '../src/consentHandler.js';
 
 function MarsmediaAdapter() {
   this.code = 'marsmedia';
@@ -216,8 +216,8 @@ function MarsmediaAdapter() {
     if (bidderRequest.uspConsent) {
       deepSetValue(bid, 'regs.ext.us_privacy', bidderRequest.uspConsent);
     }
-    if (config.getConfig('coppa') === true) {
-      deepSetValue(bid, 'regs.coppa', config.getConfig('coppa') & 1);
+    if ((bidderRequest?.ortb2?.regs?.coppa === 1 || coppaDataHandler.getCoppa())) {
+      deepSetValue(bid, 'regs.coppa', 1);
     }
 
     return bid;
@@ -278,11 +278,10 @@ function MarsmediaAdapter() {
   this.interpretResponse = function (serverResponse) {
     let responses = serverResponse.body || [];
     const bids = [];
-    let i = 0;
 
     if (responses.seatbid) {
       const temp = [];
-      for (i = 0; i < responses.seatbid.length; i++) {
+      for (let i = 0; i < responses.seatbid.length; i++) {
         for (let j = 0; j < responses.seatbid[i].bid.length; j++) {
           temp.push(responses.seatbid[i].bid[j]);
         }
@@ -290,7 +289,7 @@ function MarsmediaAdapter() {
       responses = temp;
     }
 
-    for (i = 0; i < responses.length; i++) {
+    for (let i = 0; i < responses.length; i++) {
       const bid = responses[i];
       const bidRequest = slotsToBids[bid.impid];
       const bidResponse = {

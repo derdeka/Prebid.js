@@ -16,7 +16,6 @@ import {
   PREBID,
   VERSION,
   WITHOUT_IIQ,
-  WITH_IIQ,
   AB_CONFIG_SOURCE,
 } from "../../../libraries/intentIqConstants/intentIqConstants.js";
 import * as detectBrowserUtils from "../../../libraries/intentIqUtils/detectBrowserUtils.js";
@@ -91,7 +90,7 @@ const regionCases = [
 ];
 const version = VERSION;
 const REPORT_ENDPOINT = "https://reports.intentiq.com/report";
-const REPORT_ENDPOINT_GDPR = "https://reports-gdpr.intentiq.com/report";
+
 const REPORT_SERVER_ADDRESS = "https://test-reports.intentiq.com/report";
 
 const randomVal = () => Math.floor(Math.random() * 100000) + 1;
@@ -259,7 +258,8 @@ describe("IntentIQ tests all", function () {
     getWindowLocationStub = sinon
       .stub(utils, "getWindowLocation")
       .returns({ href: "http://localhost:9876" });
-    const expectedVrref = getWindowLocationStub().href;
+    // the test runs in a frame, so vrref is the top page's URL (getCurrentUrl), not the stubbed location
+    const expectedVrref = window.top.location.origin;
     events.emit(EVENTS.BID_WON, getWonRequest());
 
     expect(server.requests.length).to.be.above(0);
@@ -377,7 +377,7 @@ describe("IntentIQ tests all", function () {
       group: "B",
     };
 
-    const expectedVrref = encodeURIComponent("http://localhost:9876/");
+    const expectedVrref = encodeURIComponent(`${window.top.location.origin}/`);
 
     events.emit(EVENTS.BID_WON, getWonRequest());
 
@@ -596,7 +596,7 @@ describe("IntentIQ tests all", function () {
     );
     expect(request.url).to.contain(`&jsver=${version}`);
     expect(request.url).to.contain(
-      `&vrref=${encodeURIComponent("http://localhost:9876/")}`
+      `&vrref=${encodeURIComponent(`${window.top.location.origin}/`)}`
     );
     expect(request.url).to.contain("&payload=");
     expect(request.url).to.contain(

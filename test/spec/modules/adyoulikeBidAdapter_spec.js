@@ -2,7 +2,6 @@ import { expect } from 'chai';
 
 import { spec } from 'modules/adyoulikeBidAdapter.js';
 import { newBidder } from 'src/adapters/bidderFactory.js';
-import { config } from 'src/config.js';
 
 describe('Adyoulike Adapter', function () {
   const canonicalUrl = 'https://canonical.url/?t=%26';
@@ -21,37 +20,6 @@ describe('Adyoulike Adapter', function () {
     },
     refererInfo: { location: referrerUrl, canonicalUrl, domain, topmostLocation: 'fakePageURL' },
     ortb2: { site: { page: pageUrl, ref: referrerUrl } }
-  };
-  const bidRequestWithEmptyPlacement = [
-    {
-      'bidId': 'bid_id_0',
-      'bidder': 'adyoulike',
-      'placementCode': 'adunit/hb-0',
-      'params': {},
-      'sizes': '300x250',
-      'mediaTypes':
-        {
-          'banner':
-          { 'sizes': ['300x250', '300x600'] }
-        }
-    }
-  ];
-  const bidRequestWithEmptySizes = {
-    'bids': [
-      {
-        'bidId': 'bid_id_0',
-        'bidder': 'adyoulike',
-        'placementCode': 'adunit/hb-0',
-        'params': {
-          'placement': 'placement_0'
-        },
-        'ortb2Imp': {
-          'ext': {
-            'tid': 'bid_id_0_transaction_id'
-          }
-        },
-      }
-    ],
   };
 
   const bidRequestWithSinglePlacement = [
@@ -125,44 +93,6 @@ describe('Adyoulike Adapter', function () {
           tid: 'bid_id_0_transaction_id'
         }
       }
-    }
-  ];
-
-  const bidRequestWithMultipleMediatype = [
-    {
-      'bidId': 'bid_id_0',
-      'bidder': 'adyoulike',
-      'placementCode': 'adunit/hb-0',
-      'params': {
-        'placement': 'placement_0'
-      },
-      'sizes': '300x250',
-      'mediaTypes': {
-        'banner': {
-          'sizes': ['640x480']
-        },
-        'video': {
-          'playerSize': [640, 480],
-          'context': 'outstream'
-        },
-        'native': {
-          'image': {
-            'required': true,
-          },
-          'title': {
-            'required': true,
-            'len': 80
-          },
-          'cta': {
-            'required': false
-          },
-        }
-      },
-      ortb2Imp: {
-        ext: {
-          tid: 'bid_id_0_transaction_id'
-        }
-      },
     }
   ];
 
@@ -417,12 +347,6 @@ describe('Adyoulike Adapter', function () {
       'AvailableSizes': '300x250'
     }
   };
-
-  const responseWithEmptyPlacement = [
-    {
-      'Placement': 'placement_0'
-    }
-  ];
 
   const testMetaObject = {
     'networkId': 123,
@@ -807,7 +731,6 @@ describe('Adyoulike Adapter', function () {
 
     it('sends bid request to endpoint setted by parameters', function () {
       const request = spec.buildRequests(bidRequestWithDCPlacement, bidderRequest);
-      const payload = JSON.parse(request.data);
 
       expect(request.url).to.contain(getEndpoint(`${defaultDC}-fra01`));
     });
@@ -884,7 +807,6 @@ describe('Adyoulike Adapter', function () {
       expect(result.length).to.equal(1);
 
       const noMeta = [...nativeResult];
-      const metaBackup = noMeta[0].meta;
 
       // this test should return default meta object
       noMeta[0].meta = { advertiserDomains: [] };
@@ -939,25 +861,8 @@ describe('Adyoulike Adapter', function () {
       });
 
       describe('COPPA', function() {
-        let sandbox;
-
-        this.beforeEach(function() {
-          sandbox = sinon.createSandbox();
-        });
-
-        this.afterEach(function() {
-          sandbox.restore();
-        });
-
         it('should add coppa parameters if provided', function() {
-          sandbox.stub(config, 'getConfig').callsFake(key => {
-            const config = {
-              'coppa': true
-            };
-            return config[key];
-          });
-
-          expect(spec.getUserSyncs(userSyncConfig, {}, undefined, undefined)).to.deep.equal([{
+          expect(spec.getUserSyncs(userSyncConfig, {}, undefined, undefined, undefined, true)).to.deep.equal([{
             type: 'iframe', url: `${syncurl_iframe}&coppa=1`
           }]);
         });

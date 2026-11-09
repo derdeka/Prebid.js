@@ -83,9 +83,11 @@ describe('permutiveRtdProvider', function () {
 
     describe('identity manager gating', function () {
       const idKey = 'permutive-prebid-id';
-      const idPayload = { providers: { id5id: { userId: 'abc', expiryTime: Date.now() + 10000 } } };
 
       beforeEach(function () {
+        // set the expiry when each test runs, not when the suite is defined: earlier specs in the same run can
+        // take longer than its lifetime, so the stored id would already have expired
+        const idPayload = { providers: { id5id: { userId: 'abc', expiryTime: Date.now() + 10000 } } };
         permutiveIdStorage.setDataInLocalStorage(idKey, JSON.stringify(idPayload));
       });
 
@@ -426,12 +428,6 @@ describe('permutiveRtdProvider', function () {
 
       const bidderConfig = Object.fromEntries(acBidders.map(bidder => [bidder, sampleOrtbConfig]));
 
-      const transformedUserData = {
-        name: 'transformation',
-        ext: { test: true },
-        segment: [1, 2, 3]
-      };
-
       setBidderRtb(bidderConfig, moduleConfig, segmentsData);
 
       acBidders.forEach(bidder => {
@@ -461,12 +457,6 @@ describe('permutiveRtdProvider', function () {
       };
 
       const bidderConfig = Object.fromEntries(acBidders.map(bidder => [bidder, sampleOrtbConfig]));
-
-      const transformedUserData = {
-        name: 'transformation',
-        ext: { test: true },
-        segment: [1, 2, 3]
-      };
 
       setBidderRtb(bidderConfig, moduleConfig, segmentsData);
 

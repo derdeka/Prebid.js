@@ -7,13 +7,13 @@ import {
   isPlainObject,
   getBidIdParameter
 } from '../src/utils.js';
-import { config } from '../src/config.js';
 import { Renderer } from '../src/Renderer.js';
 import { registerBidder } from '../src/adapters/bidderFactory.js';
 import { createBid } from '../src/bidfactory.js';
 import { BANNER, NATIVE, VIDEO } from '../src/mediaTypes.js';
 import { STATUS } from '../src/constants.js';
 import { OUTSTREAM, INSTREAM } from '../src/video.js';
+import { coppaDataHandler } from '../src/consentHandler.js';
 
 /**
  * @typedef {import('../src/adapters/bidderFactory.js').BidRequest} BidRequest
@@ -179,7 +179,7 @@ function buildNativeRequest(bidRequest, bidderRequest) {
   }
   const body = deepAccess(bidRequest, 'mediaTypes.native.body');
   if (body) {
-    assets.push(generateNativeDataObj(body, 'desc', ++counter));
+    assets.push(generateNativeDataObj(body, 'desc', counter + 1));
   }
 
   const request = JSON.stringify({ assets: assets });
@@ -321,7 +321,7 @@ function generatePayload(imp, bidderRequest) {
     regs.ext.gdpr = bidderRequest.gdprConsent.gdprApplies ? '1' : '0';
   }
 
-  if (config.getConfig('coppa') === true) {
+  if ((bidderRequest?.ortb2?.regs?.coppa === 1 || coppaDataHandler.getCoppa())) {
     regs.coppa = '1';
   }
 

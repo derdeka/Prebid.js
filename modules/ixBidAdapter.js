@@ -24,6 +24,13 @@ import { INSTREAM, OUTSTREAM } from '../src/video.js';
 import { Renderer } from '../src/Renderer.js';
 import { getGptSlotInfoForAdUnitCode } from '../libraries/gptUtils/gptUtils.js';
 import { getAdUnitElement } from '../src/utils/adUnits.js';
+import { coppaDataHandler } from '../src/consentHandler.js';
+
+/**
+ * @typedef {import('../src/adapters/bidderFactory.js').BidRequest} BidRequest
+ * @typedef {import('./ixBidAdapter.d.ts').IxBidderParams} IxBidderParams
+ * @typedef {BidRequest & {params: IxBidderParams}} IxBidRequest
+ */
 
 const divIdCache = {};
 
@@ -175,7 +182,7 @@ function setDisplayManager(imp, bid) {
       imp.displaymanager = 'pbjs_wrapper';
     } else if (renderer && typeof (renderer) === 'object') {
       if (renderer.url !== undefined) {
-        let domain = '';
+        let domain;
         try {
           domain = new URL(renderer.url).hostname;
         } catch {
@@ -935,7 +942,7 @@ function applyRegulations(r, bidderRequest) {
     }
   }
 
-  if (config.getConfig('coppa')) {
+  if ((bidderRequest?.ortb2?.regs?.coppa === 1 || coppaDataHandler.getCoppa())) {
     deepSetValue(r, 'regs.coppa', 1);
   }
 
@@ -1101,7 +1108,7 @@ function getIxFirstPartyDataPageUrl (bidderRequest) {
   const bidderCode = (bidderRequest && bidderRequest.bidderCode) || 'ix';
   const otherIxConfig = config.getConfig(bidderCode);
 
-  let pageUrl = '';
+  let pageUrl;
   if (deepAccess(bidderRequest, 'ortb2.site.page')) {
     pageUrl = bidderRequest.ortb2.site.page;
   } else {
@@ -1575,7 +1582,7 @@ export const spec = {
   /**
    * Determines whether or not the given bid request is valid.
    *
-   * @param  {object}  bid The bid to validate.
+   * @param  {IxBidRequest}  bid The bid to validate.
    * @return {boolean}     True if this is a valid bid, and false otherwise.
    */
   isBidRequestValid: function (bid) {
@@ -1748,7 +1755,7 @@ export const spec = {
    */
   interpretResponse: function (serverResponse, bidderRequest) {
     const bids = [];
-    let bid = null;
+    let bid;
 
     FEATURE_TOGGLES.setFeatureToggles(serverResponse);
 

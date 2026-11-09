@@ -16,7 +16,6 @@ import { clearAllCookies } from '../../helpers/cookies.js';
 import { detectBrowser, detectBrowserFromUserAgent, detectBrowserFromUserAgentData } from '../../../libraries/intentIqUtils/detectBrowserUtils.js';
 import { CLIENT_HINTS_KEY, FIRST_PARTY_KEY, PREBID, WITH_IIQ, WITHOUT_IIQ } from '../../../libraries/intentIqConstants/intentIqConstants.js';
 import { decryptData } from '../../../libraries/intentIqUtils/cryptionUtils.js';
-import { isCHSupported } from '../../../libraries/intentIqUtils/chUtils.js';
 
 const partner = 10;
 const pai = '11';
@@ -808,7 +807,7 @@ describe('IntentIQ tests', function () {
         uspString: null
       };
 
-      storeData(FIRST_PARTY_KEY, JSON.stringify(FPD), allowedStorage, storage);
+      storeData(FIRST_PARTY_KEY, JSON.stringify(FPD), allowedStorage, FPD);
       const callBackSpy = sinon.spy();
       const submoduleCallback = intentIqIdSubmodule.getId({ ...allConfigParams, params: { ...allConfigParams.params, partner: newPartnerId } }).callback;
       submoduleCallback(callBackSpy);
@@ -830,7 +829,7 @@ describe('IntentIQ tests', function () {
         uspString: null
       };
 
-      storeData(FIRST_PARTY_KEY, JSON.stringify(FPD), allowedStorage, storage);
+      storeData(FIRST_PARTY_KEY, JSON.stringify(FPD), allowedStorage, FPD);
       const returnedObject = intentIqIdSubmodule.getId({ ...allConfigParams, params: { ...allConfigParams.params, partner: newPartnerId } });
       await waitForClientHints();
       expect(returnedObject.callback).to.be.undefined;
@@ -841,7 +840,7 @@ describe('IntentIQ tests', function () {
       // Simulates page reload: FPD has a GDPR string from the previous session,
       // but getCmpData() returns null because the TCF CMP has not responded yet.
       // Without the cmpHasData guard this mismatch would incorrectly trigger a server call.
-      const allowedStorage = ['html5'];
+
       const freshSCal = Date.now();
       const freshDate = Date.now();
       const partnerDataKey = `${FIRST_PARTY_KEY}_${partner}`;
@@ -874,7 +873,7 @@ describe('IntentIQ tests', function () {
     it('should NOT call the server for opted-out user when partner data has no cttl (e.g. only terminationCause stored)', async function () {
       // After our OptOut storage change, partner data only stores { terminationCause }.
       // Without the !isOptedOut guard, missing cttl would incorrectly trigger a server call.
-      const allowedStorage = ['html5'];
+
       const partnerDataKey = `${FIRST_PARTY_KEY}_${partner}`;
 
       const FPD = {
@@ -891,7 +890,7 @@ describe('IntentIQ tests', function () {
       localStorage.setItem(FIRST_PARTY_KEY, JSON.stringify(FPD));
       localStorage.setItem(partnerDataKey, JSON.stringify(strippedPartnerData));
 
-      const returnedObj = intentIqIdSubmodule.getId(defaultConfigParams);
+      intentIqIdSubmodule.getId(defaultConfigParams);
       await waitForClientHints();
 
       expect(server.requests.length).to.equal(0);
@@ -900,7 +899,7 @@ describe('IntentIQ tests', function () {
     it('should call the server when CMP strings actually change (user updated consent)', async function () {
       // When CMP has loaded and the consent string differs from the stored one,
       // a server call MUST happen so the server receives the new consent.
-      const allowedStorage = ['html5'];
+
       const partnerDataKey = `${FIRST_PARTY_KEY}_${partner}`;
 
       const FPD = {
@@ -991,6 +990,95 @@ describe('IntentIQ tests', function () {
       expect(callBackSpy.calledOnce).to.be.true;
       expect(updatedFirstPartyData).to.not.be.undefined;
       expect(updatedFirstPartyData.isOptedOut).to.equal(false);
+    });
+
+    function getFirstPartyWrites(setLsSpy, key = FIRST_PARTY_KEY) {
+      return setLsSpy.getCalls()
+        .filter(call => call.args[0] === key)
+        .map(call => JSON.parse(call.args[1]));
+    }
+
+    it('should never write pcid/pcidDate to device for new users if GDPR is detected, not even before the server response', async function () {
+      mockConsentHandlers(uspData, gppData, gdprData);
+      const setLsSpy = sinon.spy(storage, 'setDataInLocalStorage');
+      try {
+        const submoduleCallback = intentIqIdSubmodule.getId(allConfigParams).callback;
+        submoduleCallback(sinon.spy());
+        await waitForClientHints();
+
+        const fpdWrites = getFirstPartyWrites(setLsSpy);
+        expect(fpdWrites).to.not.be.empty;
+        fpdWrites.forEach(written => {
+          expect(written.isOptedOut).to.be.true;
+          expect(written).to.not.have.property('pcid');
+          expect(written).to.not.have.property('pcidDate');
+        });
+      } finally {
+        setLsSpy.restore();
+      }
+    });
+
+    it('should treat new users as opted out when GDPR applies but no consent string is available yet', async function () {
+      mockConsentHandlers(uspData, gppData, { gdprApplies: true });
+      const setLsSpy = sinon.spy(storage, 'setDataInLocalStorage');
+      try {
+        const submoduleCallback = intentIqIdSubmodule.getId(allConfigParams).callback;
+        submoduleCallback(sinon.spy());
+        await waitForClientHints();
+
+        const fpdWrites = getFirstPartyWrites(setLsSpy);
+        expect(fpdWrites).to.not.be.empty;
+        fpdWrites.forEach(written => {
+          expect(written.isOptedOut).to.be.true;
+          expect(written).to.not.have.property('pcid');
+          expect(written).to.not.have.property('pcidDate');
+        });
+      } finally {
+        setLsSpy.restore();
+      }
+    });
+
+    it('should strip stored identifiers and call the server when GDPR applies and stored first-party data has no isOptedOut', async function () {
+      const now = Date.now();
+      localStorage.setItem(FIRST_PARTY_KEY, JSON.stringify({
+        pcid: 'stored-pcid',
+        pcidDate: now,
+        sCal: now,
+        uspString: uspData,
+        gppString: gppData.gppString
+      }));
+      mockConsentHandlers(uspData, gppData, { gdprApplies: true });
+
+      const submoduleCallback = intentIqIdSubmodule.getId(allConfigParams).callback;
+      submoduleCallback(sinon.spy());
+      await waitForClientHints();
+
+      const lsFPD = JSON.parse(localStorage.getItem(FIRST_PARTY_KEY));
+      expect(lsFPD.isOptedOut).to.be.true;
+      expect(lsFPD).to.not.have.property('pcid');
+      expect(lsFPD).to.not.have.property('pcidDate');
+      expect(server.requests).to.have.lengthOf(1);
+    });
+
+    it('should keep isOptedOut but drop identifiers in siloed first-party data when opted out', async function () {
+      const siloKey = `${FIRST_PARTY_KEY}_p_${partner}`;
+      mockConsentHandlers(uspData, gppData, gdprData);
+      const setLsSpy = sinon.spy(storage, 'setDataInLocalStorage');
+      try {
+        intentIqIdSubmodule.getId({ params: { ...defaultConfigParams.params, siloEnabled: true } });
+        await waitForClientHints();
+
+        const fpdWrites = getFirstPartyWrites(setLsSpy, siloKey);
+        expect(fpdWrites).to.not.be.empty;
+        fpdWrites.forEach(written => {
+          expect(written.isOptedOut).to.be.true;
+          expect(written).to.not.have.property('pcid');
+          expect(written).to.not.have.property('pcidDate');
+        });
+        expect(JSON.parse(localStorage.getItem(siloKey)).isOptedOut).to.equal(true);
+      } finally {
+        setLsSpy.restore();
+      }
     });
 
     it('should save cmpData parameters in LS data and used it request if uspData, gppData, gdprData exists', async function () {
@@ -1135,7 +1223,6 @@ describe('IntentIQ tests', function () {
     });
 
     it('should make request to correct address with iiqPixelServerAddress parameter', async function() {
-      let wasCallbackCalled = false;
       const callbackConfigParams = {
         params: {
           partner: partner,
@@ -1144,9 +1231,7 @@ describe('IntentIQ tests', function () {
           partnerClientId,
           browserBlackList: 'Chrome',
           iiqPixelServerAddress: syncTestAPILink,
-          callback: () => {
-            wasCallbackCalled = true;
-          }
+          callback: () => {}
         }
       };
 
@@ -2031,6 +2116,42 @@ describe('IntentIQ tests', function () {
     expect(request.url).to.contain(`testGroup=${usedGroup}`);
     expect(callBackSpy.calledOnce).to.be.true;
     expect(groupChangedSpy.calledWith(usedGroup)).to.be.true;
+  });
+
+  it('should NOT call groupChanged when the current browser is blacklisted', async function () {
+    const groupChangedSpy = sinon.spy();
+    const blk = detectBrowser();
+    const configParams = {
+      params: {
+        ...defaultConfigParams.params,
+        browserBlackList: blk,
+        groupChanged: groupChangedSpy
+      }
+    };
+
+    intentIqIdSubmodule.getId(configParams);
+    await waitForClientHints();
+
+    expect(groupChangedSpy.called).to.be.false;
+  });
+
+  it('should not mark a test group on the sync pixel when the current browser is blacklisted', async function () {
+    const blk = detectBrowser();
+    const configParams = {
+      params: {
+        ...defaultConfigParams.params,
+        browserBlackList: blk
+      }
+    };
+
+    intentIqIdSubmodule.getId(configParams);
+    await waitForClientHints();
+
+    const pixelRequest = server.requests[0];
+    expect(pixelRequest).to.exist;
+    expect(pixelRequest.url).to.include('at=20');
+    expect(pixelRequest.url).to.not.include('testGroup=');
+    expect(pixelRequest.url).to.include('isInTestGroup=false');
   });
 
   it('should include testPercentage with configured abPercentage in AT=39 URL', async function () {

@@ -8,7 +8,7 @@ For modules and core platform updates, the initial reviewer should request an ad
 
 ### Running Tests and Verifying Integrations
 
-General gulp commands include separate commands for serving the codebase on a built in webserver, creating code coverage reports and allowing serving integration examples. The `review-start` gulp command combinese those into one command.
+General gulp commands include separate commands for serving the codebase on a built in webserver, creating code coverage reports and allowing serving integration examples. The `review-start` gulp command combines those into one command.
 
 - Run `gulp review-start`, adding the host parameter `gulp review-start --host=0.0.0.0` will bind to all IPs on the machine
     - A page will open which provides a hub for common reviewer tools.
@@ -136,6 +136,11 @@ Follow steps above for general review process. In addition:
 - Consider whether the kind of data the module is obtaining could have privacy implications. If so, make sure they're utilizing the `consent` data passed to them.
 - Make sure there's a docs pull request
 
+### Storage use
+
+- Make sure any uses of storage have a device disclosure description field set following https://github.com/InteractiveAdvertisingBureau/GDPR-Transparency-and-Consent-Framework/blob/master/TCFv2/Vendor%20Device%20Storage%20%26%20Operational%20Disclosures.md#example-1 in the https://vendor-list.consensu.org/v3/vendor-list.json if they have a gvlid, if they do not have a gvlid, encourage storage disclosure metadata is committed. Also encourage any use of storage is well described in the module md file.
+- Make sure the gvlid is published on https://vendor-list.consensu.org/v3/vendor-list.json if it is declared and that the company name roughly matches.
+
 ### Reviewing changes to the `debugging` module
 
 The debugging module cannot import from core in the same way that other modules can. See this [warning](https://github.com/prebid/Prebid.js/blob/master/modules/debugging/WARNING.md) for more details.
@@ -145,7 +150,7 @@ The debugging module cannot import from core in the same way that other modules 
 Each week, Prebid Org assigns one person to keep an eye on incoming issues and PRs. Every Monday morning a reminder is sent to the prebid-js slack channel with a link to the spreadsheet. If you're on rotation, please check that list each Monday to see if you're on-duty.
 
 When on-duty:
-- Review issues and PRs at least once per weekday for new items. Encourage a 48 "SLA" on PRs/issues assigned. Aim for touchpoint once every 48/hours. 
+- Review issues and PRs at least once per weekday for new items. Encourage a 48 "SLA" on PRs/issues assigned. Aim for touchpoint once every 48 hours. 
 - For PRs: assign PRs to individuals on the **PR review list**. Try to be equitable -- not all PRs are created equally. Use the "Assigned" field and add the "Needs Review" label.
 - For Issues: try to address questions and troubleshooting requests on your own, assigning them to others as needed. Please add labels as appropriate (I.E. bug, question, backlog etc).
 - Issues that are questions or troubleshooting requests may be closed if the originator doesn't respond within a week to requests for confirmation or details.

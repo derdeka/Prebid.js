@@ -26,7 +26,7 @@ const OUTSTREAM_RENDERER_URL = 'https://acdn.adnxs.com/video/outstream/ANOutstre
 export const spec = {
   code: BIDDER_CODE,
   gvlid: 791,
-  aliases: ['msq'], // short code
+  aliases: [{ code: 'msq', gvlid: 791 }], // short code
   supportedMediaTypes: [BANNER, NATIVE, VIDEO],
   /**
    * Determines whether or not the given bid request is valid.
@@ -166,8 +166,13 @@ export const spec = {
    * @return {UserSync[]} The user syncs which should be dropped.
    */
   getUserSyncs: function(syncOptions, serverResponses, gdprConsent, uspConsent) {
-    if (typeof serverResponses === 'object' && serverResponses !== null && serverResponses !== undefined && serverResponses.length > 0 && serverResponses[0].hasOwnProperty('body') &&
-        serverResponses[0].body.hasOwnProperty('cookies') && typeof serverResponses[0].body.cookies === 'object') {
+    if (Array.isArray(serverResponses) &&
+        serverResponses.length > 0 &&
+        serverResponses[0] &&
+        serverResponses[0].body &&
+        typeof serverResponses[0].body === 'object' &&
+        serverResponses[0].body.hasOwnProperty('cookies') &&
+        typeof serverResponses[0].body.cookies === 'object') {
       return serverResponses[0].body.cookies;
     } else {
       return [];

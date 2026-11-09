@@ -1,10 +1,11 @@
-import { _each, isBoolean, isNumber, isStr, deepClone, isArray, deepSetValue, inIframe, mergeDeep, deepAccess, logMessage, logInfo, logWarn, logError, isPlainObject } from '../src/utils.js';
+import { _each, isBoolean, isNumber, isStr, deepClone, isArray, deepSetValue, inIframe, mergeDeep, deepAccess, logInfo, logWarn, logError, isPlainObject } from '../src/utils.js';
 import { registerBidder } from '../src/adapters/bidderFactory.js';
 import { BANNER, NATIVE, VIDEO } from '../src/mediaTypes.js';
 import { config } from '../src/config.js';
 import { convertOrtbRequestToProprietaryNative } from '../src/native.js';
 import { OUTSTREAM, INSTREAM } from '../src/video.js';
 import { getDNT } from '../libraries/dnt/index.js';
+import { coppaDataHandler } from '../src/consentHandler.js';
 
 /**
  * @typedef {import('../src/adapters/bidderFactory.js').BidRequest} BidRequest
@@ -271,7 +272,7 @@ export const spec = {
     }
 
     // if coppa is in effect then note it
-    if (config.getConfig('coppa') === true) {
+    if ((bidderRequest?.ortb2?.regs?.coppa === 1 || coppaDataHandler.getCoppa())) {
       deepSetValue(payload, 'regs.coppa', 1);
     }
 
@@ -408,7 +409,7 @@ function _checkMediaType(bid, newBid) {
 function _parseNativeResponse(bid, newBid) {
   newBid.native = {};
   if (bid.hasOwnProperty('adm')) {
-    var adm = '';
+    var adm;
     try {
       adm = JSON.parse(bid.adm.replace(/\\/g, ''));
     } catch (ex) {
@@ -526,13 +527,12 @@ function _createOrtbTemplate(conf) {
 }
 
 function _createImpressionObject(bid, conf) {
-  var impObj = {};
   var bannerObj;
   var videoObj;
   var nativeObj = {};
   var mediaTypes = '';
 
-  impObj = {
+  const impObj = {
     id: bid.bidId,
     tagid: bid.params.adUnit || undefined,
     bidfloor: _parseSlotParam('bidFloor', bid.params.bidFloor), // capitalization dicated by 3.2.4 spec
@@ -856,13 +856,6 @@ function _createBannerRequest(bid) {
   }
 
   return bannerObj;
-}
-
-// various error levels are not always used
-// eslint-disable-next-line no-unused-vars
-function _logMessage(textValue, objectValue) {
-  objectValue = objectValue || '';
-  logMessage(LOG_PREFIX + textValue, objectValue);
 }
 
 function _logInfo(textValue, objectValue) {

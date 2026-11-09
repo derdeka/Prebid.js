@@ -1,11 +1,8 @@
 import { expect } from 'chai';
 import { spec } from 'modules/theAdxBidAdapter.js';
-import { newBidder } from 'src/adapters/bidderFactory.js';
 
 describe('TheAdxAdapter', function () {
-  const adapter = newBidder(spec);
-
-  describe('getUserSyncs', () => {
+  it('getUserSyncs should return iframe and image syncs from the response', () => {
     const USER_SYNC_IFRAME_URL = 'https://ssp.theadx.com/async_usersync_iframe.html';
     const USER_SYNC_IMAGE_URL = 'https://ssp.theadx.com/async_usersync_image.gif';
 

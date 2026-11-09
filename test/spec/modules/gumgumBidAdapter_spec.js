@@ -4,6 +4,7 @@ import { config } from 'src/config.js';
 import { expect } from 'chai';
 import { newBidder } from 'src/adapters/bidderFactory.js';
 import { spec } from 'modules/gumgumBidAdapter.js';
+import * as utils from 'src/utils.js';
 
 const ENDPOINT = 'https://g2.gumgum.com/hbid/imp';
 const JCSI = { t: 0, rq: 8, pbv: '$prebid.version$' };
@@ -281,6 +282,30 @@ describe('gumgumAdapter', function () {
         }]
       };
       const bidRequest = spec.buildRequests([filteredRequest])[0];
+      expect(bidRequest.data.pubProvidedId).to.equal(undefined);
+    });
+    it('should include growthcode.io in pubProvidedId when stype is present', function () {
+      const request = {
+        ...bidRequests[0],
+        userIdAsEids: [{
+          source: 'growthcode.io',
+          uids: [{ id: 'gcid-1', atype: 1, ext: { stype: 'ppuid' } }]
+        }]
+      };
+      const bidRequest = spec.buildRequests([request])[0];
+      const pubProvidedIds = JSON.parse(bidRequest.data.pubProvidedId);
+      expect(pubProvidedIds.length).to.equal(1);
+      expect(pubProvidedIds[0].source).to.equal('growthcode.io');
+    });
+    it('should not include growthcode.io in pubProvidedId when stype is missing', function () {
+      const request = {
+        ...bidRequests[0],
+        userIdAsEids: [{
+          source: 'growthcode.io',
+          uids: [{ id: 'gcid-1', atype: 1 }]
+        }]
+      };
+      const bidRequest = spec.buildRequests([request])[0];
       expect(bidRequest.data.pubProvidedId).to.equal(undefined);
     });
     it('should set id5Id and id5IdLinkType if the uid and  linkType are available', function () {
@@ -789,7 +814,7 @@ describe('gumgumAdapter', function () {
         const bidRequest = spec.buildRequests([request])[0];
         expect(bidRequest.data.pi).to.equal(5);
         expect(bidRequest.data.nat).to.equal(JSON.stringify(nativeOrtb));
-        expect(bidRequest.sizes).to.deep.equal([1, 1]);
+        expect(bidRequest.sizes).to.deep.equal([[1, 1]]);
       });
       it('should send ni param alongside nat when both mediaTypes.native and params.native are present', function () {
         const nativeOrtb = {
@@ -857,6 +882,34 @@ describe('gumgumAdapter', function () {
       const bidRequest = spec.buildRequests([request])[0];
       expect(bidRequest.data.bf).to.equal('300x250,300x600');
     });
+    it('should keep banner sizes for multi-format (banner + native) units with inSlot params', function () {
+      const mediaTypes = {
+        banner: { sizes: [[300, 250], [300, 600]] },
+        native: { title: { required: true }, image: { required: true } }
+      };
+      const request = { ...bidRequests[0], mediaTypes, params: { inSlot: 12345 } };
+      let bidRequest;
+      expect(() => { bidRequest = spec.buildRequests([request])[0]; }).to.not.throw();
+      expect(bidRequest.data.pi).to.equal(3);
+      expect(bidRequest.data.bf).to.equal('300x250,300x600');
+      expect(bidRequest.data.maxw).to.equal(300);
+      expect(bidRequest.data.maxh).to.equal(600);
+      expect(bidRequest.sizes).to.deep.equal([[300, 250], [300, 600]]);
+    });
+    it('should keep banner sizes for multi-format (banner + native) units with slot params', function () {
+      const mediaTypes = {
+        banner: { sizes: [[300, 250], [300, 600]] },
+        native: { title: { required: true }, image: { required: true } }
+      };
+      const request = { ...bidRequests[0], mediaTypes, params: { ...zoneParam, slot: 12345 } };
+      let bidRequest;
+      expect(() => { bidRequest = spec.buildRequests([request])[0]; }).to.not.throw();
+      expect(bidRequest.data.pi).to.equal(3);
+      expect(bidRequest.data.bf).to.equal('300x250,300x600');
+      expect(bidRequest.data.maxw).to.equal(300);
+      expect(bidRequest.data.maxh).to.equal(600);
+      expect(bidRequest.sizes).to.deep.equal([[300, 250], [300, 600]]);
+    });
     describe('floorModule', function () {
       const floorTestData = {
         'currency': 'USD',
@@ -886,6 +939,25 @@ describe('gumgumAdapter', function () {
       it('should return a floor currency', function () {
         const request = spec.buildRequests(bidRequests)[0];
         expect(request.data.fpc).to.equal(floorTestData.currency);
+      });
+      it('should use the banner floor for multi-format in-slot units even when native is listed first', function () {
+        let seenMediaType;
+        const request = {
+          ...bidRequests[0],
+          mediaTypes: {
+            native: { title: { required: true }, image: { required: true } },
+            banner: { sizes: [[300, 250], [300, 600]] }
+          },
+          params: { inSlot: 9 },
+          getFloor: ({ mediaType }) => {
+            seenMediaType = mediaType;
+            return { currency: 'USD', floor: mediaType === 'banner' ? 2.50 : 0.50 };
+          }
+        };
+        const bidRequest = spec.buildRequests([request])[0];
+        expect(seenMediaType).to.equal('banner');
+        expect(bidRequest.data.fp).to.equal(2.50);
+        expect(bidRequest.data.pi).to.equal(3);
       });
     });
 
@@ -1299,6 +1371,26 @@ describe('gumgumAdapter', function () {
       expect(bidRequest.data.pu.includes('ggdeal')).to.be.false;
     });
 
+    it('should still set pu when getWindowTop throws', function () {
+      const getWindowTopStub = sinon.stub(utils, 'getWindowTop').throws(new Error('cross-origin'));
+      const pageUrl = 'https://www.prebid.org/article?param1=foo';
+      const topmostLocation = 'https://www.prebid.org/top';
+
+      try {
+        const bidRequest = spec.buildRequests(bidRequests, {
+          refererInfo: {
+            page: pageUrl,
+            topmostLocation
+          }
+        })[0];
+
+        expect(bidRequest.data.pu).to.equal(pageUrl);
+        expect(bidRequest.data.tpl).to.equal(topmostLocation);
+      } finally {
+        getWindowTopStub.restore();
+      }
+    });
+
     it('should handle ORTB2 device data', function () {
       const suaObject = {
         source: 2,
@@ -1450,6 +1542,14 @@ describe('gumgumAdapter', function () {
 
     it('should get correct bid response', function () {
       expect(spec.interpretResponse({ body: serverResponse }, bidRequest)).to.deep.equal([expectedResponse]);
+    });
+
+    it('should not throw for an in-slot request carrying a flat [1, 1] size', function () {
+      const flatSizeRequest = { ...bidRequest, sizes: [1, 1], data: { pi: 3 } };
+      let result;
+      expect(() => { result = spec.interpretResponse({ body: serverResponse }, flatSizeRequest); }).to.not.throw();
+      expect(result[0].width).to.equal('1');
+      expect(result[0].height).to.equal('1');
     });
 
     it('should set a default value for advertiserDomains if adomain is not found', function () {
@@ -1680,7 +1780,7 @@ describe('gumgumAdapter', function () {
       expect(result.native).to.be.undefined;
     });
   });
-  describe('getUserSyncs', function () {
+  it('getUserSyncs should map pixel types to image and iframe', function () {
     const syncOptions = {
       'iframeEnabled': 'true'
     };

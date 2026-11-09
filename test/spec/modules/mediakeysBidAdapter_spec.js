@@ -1,13 +1,11 @@
 import { expect } from 'chai';
 import { spec } from 'modules/mediakeysBidAdapter.js';
-import { newBidder } from 'src/adapters/bidderFactory.js';
+
 import * as utils from 'src/utils.js';
-import { config } from 'src/config.js';
 import { BANNER, NATIVE, VIDEO } from '../../../src/mediaTypes.js';
 import { OUTSTREAM } from '../../../src/video.js';
 
 describe('mediakeysBidAdapter', function () {
-  const adapter = newBidder(spec);
   let utilsMock;
   let sandbox;
 
@@ -461,14 +459,10 @@ describe('mediakeysBidAdapter', function () {
     });
 
     it('should get expected properties with coppa', function () {
-      sinon.stub(config, 'getConfig').withArgs('coppa').returns(true);
-
       const bidRequests = [utils.deepClone(bid)];
-      const request = spec.buildRequests(bidRequests, bidderRequest);
+      const request = spec.buildRequests(bidRequests, { ...bidderRequest, ortb2: { regs: { coppa: 1 } } });
       const data = request.data;
       expect(data.regs.coppa).to.equal(1);
-
-      config.getConfig.restore();
     });
 
     it('should get expected properties with US privacy', function () {
@@ -888,11 +882,7 @@ describe('mediakeysBidAdapter', function () {
     });
 
     it('Should trigger pixel if bid.burl exists', function() {
-      const result = spec.onBidWon({
-        cpm: 4.2,
-        burl: 'https://example.com/p=${AUCTION_PRICE}&foo=bar'
-      });
-
+      spec.onBidWon({ burl: 'https://example.com/p=${AUCTION_PRICE}&foo=bar', cpm: 4.2 });
       expect(utils.triggerPixel.callCount).to.equal(1);
       expect(utils.triggerPixel.firstCall.args[0]).to.be.equal(
         'https://example.com/p=4.2&foo=bar'

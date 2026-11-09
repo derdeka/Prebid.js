@@ -1,7 +1,6 @@
 import { expect } from 'chai';
 import { spec, BotClientTests } from '../../../modules/datablocksBidAdapter.js';
 
-import { getStorageManager } from '../../../src/storageManager.js';
 import { deepClone } from '../../../src/utils.js';
 
 const bid = {
@@ -523,11 +522,11 @@ describe('DatablocksAdapter', function() {
           expect(bid.native).to.be.a('object');
         }
       });
+    });
 
-      it('Returns an empty array if invalid response is passed', function() {
-        const serverResponses = spec.interpretResponse('invalid_response');
-        expect(serverResponses).to.be.an('array').that.is.empty;
-      });
+    it('Returns an empty array if invalid response is passed', function() {
+      const serverResponses = spec.interpretResponse('invalid_response');
+      expect(serverResponses).to.be.an('array').that.is.empty;
     });
   });
 });

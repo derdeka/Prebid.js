@@ -4,7 +4,7 @@ import { newBidder } from 'src/adapters/bidderFactory.js';
 import { BANNER, VIDEO } from 'src/mediaTypes.js';
 import { config } from 'src/config.js';
 import * as utils from 'src/utils.js';
-import * as dnt from 'libraries/dnt/index.js';
+import 'libraries/dnt/index.js';
 import 'src/prebid.js';
 import 'modules/currency.js';
 import 'modules/userId/index.js';
@@ -78,6 +78,12 @@ describe('TrafficgateOpenxRtbAdapter', function () {
   describe('inherited functions', function () {
     it('exists and is a function', function () {
       expect(adapter.callBids).to.exist.and.to.be.a('function');
+    });
+  });
+
+  describe('gvlid', function () {
+    it('should declare the TrafficGate GVL ID', function () {
+      expect(spec.gvlid).to.equal(1272);
     });
   });
 
@@ -262,7 +268,7 @@ describe('TrafficgateOpenxRtbAdapter', function () {
 
   describe('buildRequests()', function () {
     let bidRequestsWithMediaTypes;
-    let bidRequestsWithPlatform;
+
     let mockBidderRequest;
 
     beforeEach(function () {
@@ -851,7 +857,6 @@ describe('TrafficgateOpenxRtbAdapter', function () {
       context('supply chain (schain)', function () {
         let bidRequests;
         let schainConfig;
-        const supplyChainNodePropertyOrder = ['asi', 'sid', 'hp', 'rid', 'name', 'domain'];
 
         beforeEach(function () {
           schainConfig = {
@@ -1294,9 +1299,7 @@ describe('TrafficgateOpenxRtbAdapter', function () {
       });
 
       it('should return the proper mediaType', function () {
-        it('should return a creativeId', function () {
-          expect(bid.mediaType).to.equal(Object.keys(bidRequestConfigs[0].mediaTypes)[0]);
-        });
+        expect(bid.mediaType).to.equal(Object.keys(bidRequestConfigs[0].mediaTypes)[0]);
       });
     });
 

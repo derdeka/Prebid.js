@@ -4,11 +4,12 @@ import * as utils from 'src/utils.js';
 import { bidderSettings } from 'src/bidderSettings.js';
 import { config } from 'src/config.js';
 import { getGlobal } from '../../../src/prebidGlobal.js';
+import { decorateAdUnitsWithNativeParams, IMAGE } from '../../../src/native.js';
 
 describe('PubMatic adapter', () => {
   let firstBid, videoBid, firstResponse, response, videoResponse, firstAliasBid;
   const PUBMATIC_ALIAS_BIDDER = 'pubmaticAlias';
-  const request = {};
+
   firstBid = {
     adUnitCode: 'Div1',
     bidder: 'pubmatic',
@@ -637,7 +638,11 @@ describe('PubMatic adapter', () => {
           it('should log a warning if playerSize is missing', () => {
             delete videoBidderRequest.bids[0].mediaTypes.video.playerSize;
             const request = spec.buildRequests(validBidRequests, videoBidderRequest);
+            const { imp } = request?.data;
+
+            expect(imp).to.be.an('array');
             sinon.assert.called(utils.logWarn);
+            expect(imp[0].video).to.be.undefined;
           });
 
           it('should log a warning if plcmt is missing', () => {
@@ -704,6 +709,7 @@ describe('PubMatic adapter', () => {
                 required: true
               }
             };
+            nativeBidderRequest.bids[0].nativeParams = nativeBidderRequest.bids[0].mediaTypes.native;
           });
 
           afterEach(() => {
@@ -740,6 +746,7 @@ describe('PubMatic adapter', () => {
 
           it('should set privacy to 1 and have no assets when privacyLink is the only native key', () => {
             nativeBidderRequest.bids[0].mediaTypes.native = { privacyLink: { required: false } };
+            nativeBidderRequest.bids[0].nativeParams = nativeBidderRequest.bids[0].mediaTypes.native;
             const request = spec.buildRequests(validBidRequests, nativeBidderRequest);
             const { imp } = request?.data;
             expect(imp).to.be.an('array');
@@ -747,6 +754,16 @@ describe('PubMatic adapter', () => {
             const nativeRequest = JSON.parse(imp[0].native.request);
             expect(nativeRequest).to.have.property('privacy').equal(1);
             expect(nativeRequest.assets).to.deep.equal([]);
+          });
+
+          it('should expand the native type shorthand', () => {
+            const bid = nativeBidderRequest.bids[0];
+            bid.mediaTypes.native = { type: 'image' };
+            delete bid.nativeParams;
+            decorateAdUnitsWithNativeParams([bid]);
+            const request = spec.buildRequests(validBidRequests, nativeBidderRequest);
+            const nativeRequest = JSON.parse(request.data.imp[0].native.request);
+            expect(nativeRequest.assets).to.eql(IMAGE.ortb.assets);
           });
         });
       }
@@ -1617,11 +1634,10 @@ describe('PubMatic adapter', () => {
       });
 
       it('returns iframe sync url with consent parameters and COPPA', () => {
-        config.setConfig({ coppa: true });
         const gdprConsent = { gdprApplies: true, consentString: 'CONSENT' };
         const uspConsent = '1YNN';
         const gppConsent = { gppString: 'GPP', applicableSections: [2, 4] };
-        const [sync] = spec.getUserSyncs({ iframeEnabled: true }, [], gdprConsent, uspConsent, gppConsent);
+        const [sync] = spec.getUserSyncs({ iframeEnabled: true }, [], gdprConsent, uspConsent, gppConsent, true);
         expect(sync).to.deep.equal({
           type: 'iframe',
           url: 'https://ads.pubmatic.com/AdServer/js/user_sync.html?kdntuid=1&p=5670&gdpr=1&gdpr_consent=CONSENT&us_privacy=1YNN&gpp=GPP&gpp_sid=2%2C4&coppa=1'
@@ -1893,7 +1909,7 @@ describe('addViewabilityToImp', () => {
   });
 
   it('should set viewability amount to "na" if not measurable (e.g., in iframe)', () => {
-    const isIframeStub = sandbox.stub(utils, 'inIframe').returns(true);
+    sandbox.stub(utils, 'inIframe').returns(true);
     addViewabilityToImp(imp, { adUnitCode: 'Div1' }, { w: 300, h: 250 });
     expect(imp.ext).to.have.property('viewability');
     expect(imp.ext.viewability.amount).to.equal('na');

@@ -23,7 +23,6 @@ function setTestEnvelopeCookie () {
 
 describe('IdentityLinkId tests', function () {
   let logErrorStub;
-  let gppConsentDataStub;
 
   beforeEach(function () {
     defaultConfigParams = { params: { pid: pid } };
@@ -163,6 +162,18 @@ describe('IdentityLinkId tests', function () {
       'Unavailable'
     );
     expect(callBackSpy.calledOnce).to.be.true;
+  });
+
+  it('should continue to callback immediately if the LiveRamp request is blocked', function () {
+    const callBackSpy = sinon.spy();
+    const submoduleCallback = identityLinkSubmodule.getId(defaultConfigParams).callback;
+    submoduleCallback(callBackSpy);
+    const request = server.requests[0];
+
+    expect(request.url).to.be.eq('https://api.rlcdn.com/api/identity/envelope?pid=14');
+    expect(() => request.error()).to.not.throw();
+    expect(callBackSpy.calledOnce).to.be.true;
+    expect(callBackSpy.calledWithExactly()).to.be.true;
   });
 
   it('should not call the LiveRamp envelope endpoint if cookie _lr_retry_request exist', function () {
